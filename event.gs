@@ -22,8 +22,8 @@ function createEvent(obj) {
   const timeRange = `${obj.startHour}-${obj.endHour}`;
 
   // 4. 取得場館代碼與地址
-  const arenaCode = obj.locationInfo?.arenaCode || '未知';
-  const address = obj.locationInfo?.address || '未知';
+  const arenaCode = obj.locationInfo?.arenaCode || 'K00';
+  const address = obj.locationInfo?.address || '大高雄羽球館大社館';
 
   // 5. 現在時間
   const createDate = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss');
@@ -79,6 +79,7 @@ function registerToEvent(userId, displayName, messageText) {
   // 支援可選備註：!報名 F01 小明+2 備註內容
   const match = messageText.trim().match(/^!報名\s+([A-Z]\d{2})\s+(.+?)(?:\s+(.+))?$/);
   if (!match) {
+    // return '你他媽是文盲還是閱讀障礙!';
     return '⚠️ 指令格式錯誤，請輸入如 "!報名 F01 小明+2" 或 "!報名 F01 小明+2 備註"';
   }
   const eventCode = match[1];
@@ -137,7 +138,8 @@ function registerToEvent(userId, displayName, messageText) {
     eventSheet.getRange(eventRowIndex + 1, 10).setValue(prevJoined + numberOfPeople);
   }
 
-  return `✅ ${baseName} 已成功報名 ${numberOfPeople} 人，活動代碼：${eventCode}`;
+  return getRegistrationList(`!查詢報名 ${eventCode}`);
+  // return `✅ ${baseName} 已成功報名 ${numberOfPeople} 人，活動代碼：${eventCode}`;
 }
 
 /**
@@ -323,7 +325,8 @@ function updateRegistration(userId, messageText) {
   }
   // 重新排序
   reorderRegistrations(eventCode);
-  return `✅ 已成功修改您於 ${eventCode} 的報名資訊：${baseName}+${numberOfPeople}`;
+  // return `✅ 已成功修改您於 ${eventCode} 的報名資訊：${baseName}+${numberOfPeople}`;
+  return getRegistrationList(`!查詢報名 ${eventCode}`);
 }
 
 /**
@@ -366,7 +369,8 @@ function cancelRegistration(userId, userMessage) {
   }
   // 重新排序
   reorderRegistrations(eventCode);
-  return `✅ 您已成功取消「${deletedNames.reverse().join('、')}」在活動 ${eventCode} 的報名`;
+  // return `✅ 您已成功取消「${deletedNames.reverse().join('、')}」在活動 ${eventCode} 的報名`;
+  return getRegistrationList(`!查詢報名 ${eventCode}`);
 }
 
 /**
@@ -385,5 +389,40 @@ function reorderRegistrations(eventCode) {
   // 重新分配順序號碼
   for (let i = 0; i < eventRegs.length; i++) {
     regSheet.getRange(eventRegs[i].rowIndex, 5).setValue(i + 1); // 第5欄為orderNumber
+  }
+}
+
+/**
+ * 關閉活動
+ */
+function closePastEvents() {
+  const sheet = onConn("events");
+  const data = sheet.getDataRange().getValues();
+  const now = new Date();
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+
+    const status = row[10];  // status (第11欄)
+    if (status !== "OPEN") continue;  // 只處理還是 OPEN 的活動
+
+    const date = row[3];      // 活動日期 (第4欄)
+    const timeRange = row[5]; // 活動時間 (第6欄)，如 "20-22"
+
+    if (!date || !timeRange) continue;  // 資料不完整跳過
+
+    const [startHour] = timeRange.split(/[-~]/).map(x => parseInt(x, 10));
+    if (isNaN(startHour)) continue;  // 時間格式錯誤跳過
+
+    // 組成活動開始的時間點
+    const eventStart = new Date(date);
+    eventStart.setHours(startHour);
+    eventStart.setMinutes(0);
+    eventStart.setSeconds(0);
+
+    if (now >= eventStart) {
+      // 活動已經開始，更新 status 欄位為 CLOSE
+      sheet.getRange(i + 1, 11).setValue("CLOSE");  // 第11欄是 status
+    }
   }
 }

@@ -22,6 +22,10 @@ function doPost(e) {
   }
 
   var replyText = '';
+
+  // ✅ 支援全形驚嘆號
+  userMessage = userMessage.replace(/！/g, "!");
+
   if (!userMessage.startsWith('!')) {
     replyText = '';
     logError('📦 聊天紀錄: ' + userMessage, userId, displayName);
@@ -215,7 +219,7 @@ function generateEventMessage(
   const start = String(startHour).padStart(2, '0') + ':00';
   const end = String(endHour).padStart(2, '0') + ':00';
 
-  const tempStr = `📣 ${groupName} 開團囉！
+  const returnStr = `📣 ${groupName} 開團囉！
 📅 日期：${eventDate}（星期${weekday}）
 🕒 時間：${start}～${end}
 📍 地點：${locationInfo ? '🔆' + locationInfo.name + '🔆' + locationInfo.address : '🔆大高雄羽球館大社館🔆高雄市大社區和平路一段85-1號'}
@@ -224,33 +228,35 @@ function generateEventMessage(
 📊 成團人數門檻：${minCount || 4}人
 請使用 "!報名 ${eventCode} 小明+2" 來報名 🙌`;
 
-  logError(tempStr);
+  logError(returnStr);
 
-  return `⚠️⚠️⚠️⚠️⚠️⚠️
-${groupName}開團囉
-開團時間：${eventDate}（${weekday}）${start}～${end}
-統計一下會出現的人數哦🤗     
+  return returnStr;
 
-地點：${locationInfo ? '🔆' + locationInfo.name + '🔆' + locationInfo.address : '🔆大高雄羽球館大社館🔆高雄市大社區和平路一段85-1號'}
+//   return `⚠️⚠️⚠️⚠️⚠️⚠️
+// ${groupName}開團囉
+// 開團時間：${eventDate}（${weekday}）${start}～${end}
+// 統計一下會出現的人數哦🤗     
 
-*為方便場地安排，請盡量於${deadlineDate}（${ endDay }）前報名。
-*如人數未達${minCount}人，則取消開團。
+// 地點：${locationInfo ? '🔆' + locationInfo.name + '🔆' + locationInfo.address : '🔆大高雄羽球館大社館🔆高雄市大社區和平路一段85-1號'}
 
-⚠️請各位依照順序報下去‼️
+// *為方便場地安排，請盡量於${deadlineDate}（${ endDay }）前報名。
+// *如人數未達${minCount}人，則取消開團。
 
-1.
-2.
-3.
-4.
-5.
-6.
-7.
-8.
-9.
-10.
-11.
-12.
+// ⚠️請各位依照順序報下去‼️
 
-回報請走格式📝     
-謝謝配合唷👍`;
+// 1.
+// 2.
+// 3.
+// 4.
+// 5.
+// 6.
+// 7.
+// 8.
+// 9.
+// 10.
+// 11.
+// 12.
+
+// 回報請走格式📝     
+// 謝謝配合唷👍`;
 }

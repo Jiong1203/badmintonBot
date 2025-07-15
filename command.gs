@@ -20,8 +20,6 @@ const COMMANDS = {
  * @returns {object} 指令處理結果
  */
 function handleCommand(userCommand, groupId = null) {
-  // 支援全形驚嘆號
-  userCommand = userCommand.replace(/！/g, "!");
   const normalizedCommand = normalizeCommand(userCommand);
 
   // 精準匹配指令表
@@ -196,7 +194,7 @@ function adminCommandHandler(groupId, userId, displayName, groupSettingObj) {
 function teaching() {
   return {
     tutorial:
-`🎾 羽球人機器人教學選單 🎾
+`🏸 羽球人機器人教學選單 🏸
 
 請輸入以下指令獲得詳細說明：
 • !報名教學 － 報名/修改/取消/查詢等功能說明
