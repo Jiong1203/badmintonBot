@@ -426,3 +426,59 @@ function closePastEvents() {
     }
   }
 }
+
+/**
+ * 解析新格式報名指令
+ * 格式: !報名 7/14 20-22 小明+2 會晚到
+ */
+function parseNewRegistrationCommand(message) {
+  const match = message.match(/^!報名\s+(\d{1,2}\/\d{1,2})\s+(\d{1,2}-\d{1,2})\s+([^\s]+)\s*(.*)$/);
+  if (!match) return null;
+  return {
+    date: match[1],
+    timeRange: match[2],
+    nicknameAndCount: match[3],
+    note: match[4] || ''
+  };
+}
+
+/**
+ * 依 groupId, date, timeRange 查找 eventCode
+ */
+function findEventCodeByGroupDateTime(groupId, date, timeRange) {
+  const sheet = onConn("events");
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (
+      row[2] == groupId &&
+      row[3] == date &&
+      row[5] == timeRange
+    ) {
+      return row[1]; // eventCode
+    }
+  }
+  return null;
+}
+
+/**
+ * 新格式報名主流程
+ * @param {string} userId
+ * @param {string} displayName
+ * @param {string} groupId
+ * @param {string} messageText
+ * @returns {string} 報名結果訊息
+ */
+function registerToEventByDateTime(userId, displayName, groupId, messageText) {
+  const parsed = parseNewRegistrationCommand(messageText);
+  if (!parsed) {
+    return '⚠️ 指令格式錯誤，請輸入如 "!報名 7/14 20-22 小明+2" 或 "!報名 7/14 20-22 小明+2 備註"';
+  }
+  const eventCode = findEventCodeByGroupDateTime(groupId, parsed.date, parsed.timeRange);
+  if (!eventCode) {
+    return `⚠️ 找不到 ${parsed.date} ${parsed.timeRange} 的開團，請確認日期與時間格式正確。`;
+  }
+  // 組合原本報名格式 "!報名 eventCode 暱稱+人數 備註"
+  const regMsg = `!報名 ${eventCode} ${parsed.nicknameAndCount} ${parsed.note}`.trim();
+  return registerToEvent(userId, displayName, regMsg);
+}

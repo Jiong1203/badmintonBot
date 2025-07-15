@@ -31,45 +31,55 @@ function doPost(e) {
     logError('📦 聊天紀錄: ' + userMessage, userId, displayName);
     return;
   } else {
-    const dateObj = handleCommand(userMessage, groupId);
-    if (dateObj.error) {
-      replyText = '指令格式錯誤，請輸入如 "!週一開團" 或 "!下週日開團"';
-    } else if (dateObj.tutorial) {
-      replyText = dateObj.tutorial;
-    } else if (dateObj.groupSetting) {
-      replyText = adminCommandHandler(groupId, userId, displayName, dateObj);
-    } else if (dateObj.event === 'create') {
-      replyText = registerToEvent(userId, displayName, userMessage);
-    } else if (dateObj.event === 'update') {
-      replyText = updateRegistration(userId, userMessage);
-    } else if (dateObj.event === 'delete') {
-      replyText = cancelRegistration(userId, userMessage);
-    } else if (dateObj.event === 'list') {
-      replyText = getRegistrationList(userMessage);
-    } else if (dateObj.event === 'openList') {
-      replyText = getOpenEventList(groupId);
+    // 新增 !報名 新格式判斷
+    if (userMessage.startsWith('!報名')) {
+      if (typeof parseNewRegistrationCommand === 'function' && parseNewRegistrationCommand(userMessage)) {
+        replyText = registerToEventByDateTime(userId, displayName, groupId, userMessage);
+      } else {
+        replyText = registerToEvent(userId, displayName, userMessage);
+      }
+      logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
     } else {
-      // 將 groupId 與 userId 加入 dateObj 供 createEvent 使用
-      dateObj.groupId = groupId;
-      dateObj.userId = userId;
+      const dateObj = handleCommand(userMessage, groupId);
+      if (dateObj.error) {
+        replyText = '指令格式錯誤，請輸入如 "!週一開團" 或 "!下週日開團"';
+      } else if (dateObj.tutorial) {
+        replyText = dateObj.tutorial;
+      } else if (dateObj.groupSetting) {
+        replyText = adminCommandHandler(groupId, userId, displayName, dateObj);
+      } else if (dateObj.event === 'create') {
+        replyText = registerToEvent(userId, displayName, userMessage);
+      } else if (dateObj.event === 'update') {
+        replyText = updateRegistration(userId, userMessage);
+      } else if (dateObj.event === 'delete') {
+        replyText = cancelRegistration(userId, userMessage);
+      } else if (dateObj.event === 'list') {
+        replyText = getRegistrationList(userMessage);
+      } else if (dateObj.event === 'openList') {
+        replyText = getOpenEventList(groupId);
+      } else {
+        // 將 groupId 與 userId 加入 dateObj 供 createEvent 使用
+        dateObj.groupId = groupId;
+        dateObj.userId = userId;
 
-      // 呼叫 createEvent 並取得 eventCode
-      const eventCode = createEvent(dateObj);
+        // 呼叫 createEvent 並取得 eventCode
+        const eventCode = createEvent(dateObj);
 
-      replyText = generateEventMessage(
-        dateObj.eventDate,
-        dateObj.deadlineDate,
-        dateObj.eventDay,
-        dateObj.deadlineDay,
-        dateObj.locationInfo,
-        dateObj.startHour,
-        dateObj.endHour,
-        dateObj.groupName,
-        dateObj.minCount,
-        eventCode
-      );
+        replyText = generateEventMessage(
+          dateObj.eventDate,
+          dateObj.deadlineDate,
+          dateObj.eventDay,
+          dateObj.deadlineDay,
+          dateObj.locationInfo,
+          dateObj.startHour,
+          dateObj.endHour,
+          dateObj.groupName,
+          dateObj.minCount,
+          eventCode
+        );
+      }
+      logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
     }
-    logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
   }
 
   const url = 'https://api.line.me/v2/bot/message/reply';
