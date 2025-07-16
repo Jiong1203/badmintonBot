@@ -42,7 +42,7 @@ function doPost(e) {
     } else {
       const dateObj = handleCommand(userMessage, groupId);
       if (dateObj.error) {
-        replyText = '指令格式錯誤，請輸入如 "!週一開團" 或 "!下週日開團"';
+        replyText = '指令格式錯誤，請輸入 "!教學" 來查看系統指令';
       } else if (dateObj.tutorial) {
         replyText = dateObj.tutorial;
       } else if (dateObj.groupSetting) {
