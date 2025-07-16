@@ -452,13 +452,22 @@ function findEventCodeByGroupDateTime(groupId, date, timeRange) {
     const row = data[i];
     if (
       row[2] == groupId &&
-      row[3] == date &&
+      formatSheetDate(row[3]) == date &&
       row[5] == timeRange
     ) {
       return row[1]; // eventCode
     }
   }
   return null;
+}
+
+function formatSheetDate(sheetDate) {
+  if (sheetDate instanceof Date) {
+    // 轉成 "M/D" 格式
+    return (sheetDate.getMonth() + 1) + '/' + sheetDate.getDate();
+  }
+  // 若已經是字串就直接回傳
+  return sheetDate;
 }
 
 /**
@@ -481,4 +490,44 @@ function registerToEventByDateTime(userId, displayName, groupId, messageText) {
   // 組合原本報名格式 "!報名 eventCode 暱稱+人數 備註"
   const regMsg = `!報名 ${eventCode} ${parsed.nicknameAndCount} ${parsed.note}`.trim();
   return registerToEvent(userId, displayName, regMsg);
+}
+
+/**
+ * 新格式取消報名主流程
+ * 格式: !取消報名 7/16 18-21 小明-2
+ */
+function cancelRegistrationByDateTime(userId, groupId, messageText) {
+  // 解析新格式
+  const match = messageText.match(/^!取消報名\s+(\d{1,2}\/\d{1,2})\s+(\d{1,2}-\d{1,2})\s+([^\s]+)$/);
+  if (!match) {
+    return cancelRegistration(userId, messageText); // fallback 舊格式
+  }
+  const [, date, timeRange, nameAndCount] = match;
+  const eventCode = findEventCodeByGroupDateTime(groupId, date, timeRange);
+  if (!eventCode) {
+    return `⚠️ 找不到 ${date} ${timeRange} 的開團，請確認日期與時間格式正確。`;
+  }
+  // 組合舊格式 "!取消報名 eventCode 小明-2"
+  const regMsg = `!取消報名 ${eventCode} ${nameAndCount}`;
+  return cancelRegistration(userId, regMsg);
+}
+
+/**
+ * 新格式修改報名主流程
+ * 格式: !修改報名 7/16 18-21 小明+2 備註
+ */
+function updateRegistrationByDateTime(userId, groupId, messageText) {
+  // 解析新格式
+  const match = messageText.match(/^!修改報名\s+(\d{1,2}\/\d{1,2})\s+(\d{1,2}-\d{1,2})\s+([^\s]+)(?:\s+(.*))?$/);
+  if (!match) {
+    return updateRegistration(userId, messageText); // fallback 舊格式
+  }
+  const [, date, timeRange, nameAndCount, remark] = match;
+  const eventCode = findEventCodeByGroupDateTime(groupId, date, timeRange);
+  if (!eventCode) {
+    return `⚠️ 找不到 ${date} ${timeRange} 的開團，請確認日期與時間格式正確。`;
+  }
+  // 組合舊格式 "!修改報名 eventCode 小明+2 備註"
+  const regMsg = `!修改報名 ${eventCode} ${nameAndCount}${remark ? ' ' + remark : ''}`;
+  return updateRegistration(userId, regMsg);
 }

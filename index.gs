@@ -50,9 +50,9 @@ function doPost(e) {
       } else if (dateObj.event === 'create') {
         replyText = registerToEvent(userId, displayName, userMessage);
       } else if (dateObj.event === 'update') {
-        replyText = updateRegistration(userId, userMessage);
+        replyText = updateRegistrationByDateTime(userId, groupId, userMessage);
       } else if (dateObj.event === 'delete') {
-        replyText = cancelRegistration(userId, userMessage);
+        replyText = cancelRegistrationByDateTime(userId, groupId, userMessage);
       } else if (dateObj.event === 'list') {
         replyText = getRegistrationList(userMessage);
       } else if (dateObj.event === 'openList') {
