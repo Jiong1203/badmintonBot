@@ -1,98 +1,10 @@
+// 入口檔案，將 webhook 處理導向 handlers/webhook.gs
+// 其餘邏輯請於 handlers/webhook.gs 及各模組維護
+
+// Google Apps Script 會自動呼叫 doPost
+// 此處僅作為導向
 function doPost(e) {
-  var CHANNEL_ACCESS_TOKEN = 'TW2Hr46MLsq+Ue7P6PfJhPzVuOk4MZsrSh+KXLGCtgwyhzHth0BJh16thF1/+8VG4Z2FX4Sw1p3/nwko7UPNyBzxFD51NDihPRwA3GrIBOtlQWaPyNqchi1v0Kz5oRGAWujGuYttUWhBlagKhXEkbQdB04t89/1O/w1cDnyilFU=';
-  var msg = JSON.parse(e.postData.contents);
-  const event = msg.events[0];
-  if (event.type !== 'message' || event.message.type !== 'text') return;
-
-  // 取出 replayToken 和發送的訊息文字
-  var replyToken = event.replyToken;
-  var userMessage = event.message.text;
-  var userId = event.source.userId;
-  const groupId = event.source.groupId || null;
-
-  // 取得使用者暱稱
-  var displayName = getUserDisplayName(userId);
-  
-
-  // 👉 記錄使用者資訊
-  recordUser(userId, displayName);
-
-  if (typeof replyToken === 'undefined') {
-    return;
-  }
-
-  var replyText = '';
-
-  // ✅ 支援全形驚嘆號
-  userMessage = userMessage.replace(/！/g, "!");
-
-  if (!userMessage.startsWith('!')) {
-    replyText = '';
-    logError('📦 聊天紀錄: ' + userMessage, userId, displayName);
-    return;
-  } else {
-    // 新增 !報名 新格式判斷
-    if (userMessage.startsWith('!報名')) {
-      if (typeof parseNewRegistrationCommand === 'function' && parseNewRegistrationCommand(userMessage)) {
-        replyText = registerToEventByDateTime(userId, displayName, groupId, userMessage);
-      } else {
-        replyText = registerToEvent(userId, displayName, userMessage);
-      }
-      logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
-    } else {
-      const dateObj = handleCommand(userMessage, groupId);
-      if (dateObj.error) {
-        replyText = '指令格式錯誤，請輸入 "!教學" 來查看系統指令';
-      } else if (dateObj.tutorial) {
-        replyText = dateObj.tutorial;
-      } else if (dateObj.groupSetting) {
-        replyText = adminCommandHandler(groupId, userId, displayName, dateObj);
-      } else if (dateObj.event === 'create') {
-        replyText = registerToEvent(userId, displayName, userMessage);
-      } else if (dateObj.event === 'update') {
-        replyText = updateRegistrationByDateTime(userId, groupId, userMessage);
-      } else if (dateObj.event === 'delete') {
-        replyText = cancelRegistrationByDateTime(userId, groupId, userMessage);
-      } else if (dateObj.event === 'list') {
-        replyText = getRegistrationList(userMessage);
-      } else if (dateObj.event === 'openList') {
-        replyText = getOpenEventList(groupId);
-      } else {
-        // 將 groupId 與 userId 加入 dateObj 供 createEvent 使用
-        dateObj.groupId = groupId;
-        dateObj.userId = userId;
-
-        // 呼叫 createEvent 並取得 eventCode
-        const eventCode = createEvent(dateObj);
-
-        replyText = generateEventMessage(
-          dateObj.eventDate,
-          dateObj.deadlineDate,
-          dateObj.eventDay,
-          dateObj.deadlineDay,
-          dateObj.locationInfo,
-          dateObj.startHour,
-          dateObj.endHour,
-          dateObj.groupName,
-          dateObj.minCount,
-          eventCode
-        );
-      }
-      logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
-    }
-  }
-
-  const url = 'https://api.line.me/v2/bot/message/reply';
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-  };
-  const payload = JSON.stringify({
-    replyToken: replyToken,
-    messages: [{ type: 'text', text: replyText }],
-  });
-
-  UrlFetchApp.fetch(url, { method: 'post', headers, payload });
+  return doPost(e); // handlers/webhook.gs 需有同名 function
 }
 
 /**
