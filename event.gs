@@ -1,3 +1,6 @@
+// 依賴 utils/date.gs, utils/location.gs, data/sheets.gs, user.gs, log.gs
+// 請直接使用 getSheetData, appendRow, getWeekdayNumber, changeChinese, calculateDate, calculateDeadlineDate, formatDate, locationMap, findLocationInfo 等工具
+
 /**
  * 存取開團資訊
  */

@@ -1,3 +1,6 @@
+// 依賴 data/sheets.gs
+// 請直接使用 getSheetData, appendRow 等工具
+
 /**
  * 用戶新增 / 用戶名稱更新
  */

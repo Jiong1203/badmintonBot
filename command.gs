@@ -2,12 +2,28 @@
  * command.gs
  * 指令統一處理模組
  */
+// 依賴 utils/date.gs, utils/location.gs, data/sheets.gs, user.gs
+// 請直接使用 getWeekdayNumber, changeChinese, calculateDate, calculateDeadlineDate, formatDate, findLocationInfo, getSheetData, appendRow 等工具
+
+// 教學與錯誤訊息集中
+const HELP_TEXT = {
+  teaching: `🏸 羽球人機器人教學選單 🏸\n\n請輸入以下指令獲得詳細說明：\n• !報名教學 － 報名/修改/取消/查詢等功能說明\n• !開團教學 － 如何開團與開團格式說明\n• !管理員教學 － 管理員權限與群組設定說明`,
+  signup: `📝 報名功能教學\n\n• 報名：!報名 活動代碼 暱稱+人數 [備註]\n  例：!報名 F01 小明+2 會晚到\n  → 若報名2人，會產生「小明」、「小明2」兩筆資料\n\n• 修改報名：!修改報名 活動代碼 暱稱+人數 [備註]\n  例：!修改報名 F01 小明+3 改帶朋友\n  → 會自動增減/補齊人數，新增的排在最後\n\n• 取消報名：!取消報名 活動代碼 暱稱[-N]\n  例：!取消報名 F01 小明-2\n  → 會從最後一位開始連續刪除N筆（如小明2、小明）\n\n• 查詢報名：!查詢報名 活動代碼\n\n• 查詢活動：!查詢活動\n  → 查看目前本群組所有開放中的活動\n\n⚠️ 報名順序會自動分配，查詢時依順序顯示`,
+  event: `📣 開團教學\n\n• 基本格式：\n  !週X開團 地點\n  !下週X開團 地點\n  !下下週X開團 地點\n\n• 指定時間：\n  !週五20-23開團 超速\n  !下週三18~21開團 大高雄\n\n• 地點可輸入關鍵字，系統自動比對場館\n\n• 範例：\n  !週五開團 大高雄\n  !下週日20-23開團 超速`,
+  admin: `🛠️ 管理員功能教學 🛠️\n\n🔧 管理指令列表：\n!成為管理員 → 向群組申請為第一位管理員\n!加入管理員 @暱稱 → 將他人加入本群管理員（需為現任管理員）\n!退出管理員 → 放棄自己的管理員身分\n!移除管理員 @暱稱 → 將指定暱稱的管理員移除（需為 admin）\n\n⚙️ 群組預設設定指令：\n!設定球隊 團名 → 設定球隊名稱（如 一起打羽球羽球隊）\n!設定場館 關鍵字或代碼 → 設定開團預設場館（可用模糊比對）\n!設定時間 起始-結束 → 設定預設時段，如 20-22\n!設定截止 天數 → 設定統計截止為活動日前 X 天（例如 2）\n!設定人數 數量 → 設定最低成團人數（如 4）\n\n📋 查詢與重置：\n!查詢設定 → 檢視目前群組的預設值\n!重置設定 → 將預設值重設為 K00、20-22、2、4\n\n⚠️ 僅限管理員執行設定指令，其他使用者會被拒絕`
+};
+
+const ERROR_MSG = {
+  parse: '無法解析指令，請輸入如 "!週五開團 大高雄" 等格式',
+  weekday: '星期格式錯誤'
+};
+
 // 指令表（精準比對）
 const COMMANDS = {
-  '!教學': () => teaching(),
-  '!報名教學': () => signupTeaching(),
-  '!開團教學': () => eventTeaching(),
-  '!管理員教學': () => adminTeaching(),
+  '!教學': () => ({ tutorial: HELP_TEXT.teaching }),
+  '!報名教學': () => ({ tutorial: HELP_TEXT.signup }),
+  '!開團教學': () => ({ tutorial: HELP_TEXT.event }),
+  '!管理員教學': () => ({ tutorial: HELP_TEXT.admin }),
   '!成為管理員': () => ({ groupSetting: '成為管理員' }),
   '!退出管理員': () => ({ groupSetting: '退出管理員' }),
   '!查詢設定': () => ({ groupSetting: '查詢設定' }),
@@ -66,32 +82,32 @@ function handleCommand(userCommand, groupId = null) {
   }
 
   // 處理：!週五20-22開團 地點
-  const match = normalizedCommand.match(/^!(下下週|下週|週)([日一二三四五六])(?:(\d{1,2})[-~](\d{1,2}))?開團(?:\s+(.+))?$/);
-  if (!match) {
-    return { error: '無法解析指令，請輸入如 "!週五開團 大高雄" 等格式' };
+  const openEventMatch = normalizedCommand.match(/^!(下下週|下週|週)([日一二三四五六])(?:(\d{1,2})[-~](\d{1,2}))?開團(?:\s+(.+))?$/);
+  if (!openEventMatch) {
+    return { error: ERROR_MSG.parse };
   }
 
-  const weekPrefix = match[1];       // 週、下週、下下週
-  const dayChar = match[2];          // 日～六
-  let startHour = match[3] ? parseInt(match[3], 10) : null;
-  let endHour = match[4] ? parseInt(match[4], 10) : null;
-  const locationInput = match[5] ? match[5].trim() : null;
+  const weekPrefix = openEventMatch[1];       // 週、下週、下下週
+  const dayChar = openEventMatch[2];          // 日～六
+  let startHour = openEventMatch[3] ? parseInt(openEventMatch[3], 10) : null;
+  let endHour = openEventMatch[4] ? parseInt(openEventMatch[4], 10) : null;
+  const locationInput = openEventMatch[5] ? openEventMatch[5].trim() : null;
 
   const weekday = getWeekdayNumber(dayChar);
-  if (weekday === -1) return { error: '星期格式錯誤' };
+  if (weekday === -1) return { error: ERROR_MSG.weekday };
 
   let offset = 0;
   if (weekPrefix === '下週') offset = 1;
   if (weekPrefix === '下下週') offset = 2;
 
-  const event = calculateDate(weekday, offset);
-  const eventDate = event.targetDate;
-  const eventDay = event.targetDay;
+  const eventDateObj = calculateDate(weekday, offset);
+  const eventDate = eventDateObj.targetDate;
+  const eventDay = eventDateObj.targetDay;
 
   // 嘗試載入群組預設值
   let groupSettings = null;
   if (groupId) {
-    const sheetData = onConn("group_settings").getDataRange().getValues();
+    const sheetData = getSheetData("group_settings");
     const row = sheetData.find(row => row[0] === groupId);
     if (row) {
       groupSettings = {
@@ -186,102 +202,4 @@ function adminCommandHandler(groupId, userId, displayName, groupSettingObj) {
   // ⏬ 使用完整指令交由 groupSettingHandler 處理
   const originalCommandText = groupSettingObj.originalCommand || `${action} ${value || ''}`.trim();
   return groupSettingHandler(groupId, userId, originalCommandText);
-}
-
-/**
- * 「!教學」回應內容（主選單）
- */
-function teaching() {
-  return {
-    tutorial:
-`🏸 羽球人機器人教學選單 🏸
-
-請輸入以下指令獲得詳細說明：
-• !報名教學 － 報名/修改/取消/查詢等功能說明
-• !開團教學 － 如何開團與開團格式說明
-• !管理員教學 － 管理員權限與群組設定說明`
-  };
-}
-
-/**
- * 「!報名教學」回應內容
- */
-function signupTeaching() {
-  return {
-    tutorial:
-`📝 報名功能教學
-
-• 報名：!報名 活動代碼 暱稱+人數 [備註]
-  例：!報名 F01 小明+2 會晚到
-  → 若報名2人，會產生「小明」、「小明2」兩筆資料
-
-• 修改報名：!修改報名 活動代碼 暱稱+人數 [備註]
-  例：!修改報名 F01 小明+3 改帶朋友
-  → 會自動增減/補齊人數，新增的排在最後
-
-• 取消報名：!取消報名 活動代碼 暱稱[-N]
-  例：!取消報名 F01 小明-2
-  → 會從最後一位開始連續刪除N筆（如小明2、小明）
-
-• 查詢報名：!查詢報名 活動代碼
-
-• 查詢活動：!查詢活動
-  → 查看目前本群組所有開放中的活動
-
-⚠️ 報名順序會自動分配，查詢時依順序顯示`
-  };
-}
-
-/**
- * 「!開團教學」回應內容
- */
-function eventTeaching() {
-  return {
-    tutorial:
-`📣 開團教學
-
-• 基本格式：
-  !週X開團 地點
-  !下週X開團 地點
-  !下下週X開團 地點
-
-• 指定時間：
-  !週五20-23開團 超速
-  !下週三18~21開團 大高雄
-
-• 地點可輸入關鍵字，系統自動比對場館
-
-• 範例：
-  !週五開團 大高雄
-  !下週日20-23開團 超速`
-  };
-}
-
-/**
- * 「!管理員教學」回應內容
- */
-function adminTeaching() {
-  return {
-    tutorial:
-`🛠️ 管理員功能教學 🛠️
-
-🔧 管理指令列表：
-!成為管理員 → 向群組申請為第一位管理員
-!加入管理員 @暱稱 → 將他人加入本群管理員（需為現任管理員）
-!退出管理員 → 放棄自己的管理員身分
-!移除管理員 @暱稱 → 將指定暱稱的管理員移除（需為 admin）
-
-⚙️ 群組預設設定指令：
-!設定球隊 團名 → 設定球隊名稱（如 一起打羽球羽球隊）
-!設定場館 關鍵字或代碼 → 設定開團預設場館（可用模糊比對）
-!設定時間 起始-結束 → 設定預設時段，如 20-22
-!設定截止 天數 → 設定統計截止為活動日前 X 天（例如 2）
-!設定人數 數量 → 設定最低成團人數（如 4）
-
-📋 查詢與重置：
-!查詢設定 → 檢視目前群組的預設值
-!重置設定 → 將預設值重設為 K00、20-22、2、4
-
-⚠️ 僅限管理員執行設定指令，其他使用者會被拒絕`
-  };
 }

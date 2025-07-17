@@ -1,3 +1,6 @@
+// 依賴 utils/location.gs, data/sheets.gs, user.gs
+// 請直接使用 locationMap, findLocationInfo, getSheetData, appendRow 等工具
+
 /**
  * 檢查是否為管理員
  */
