@@ -3,38 +3,34 @@
  * 處理來自 LINE 的 webhook 請求
  */
 
-/**
- * 處理 LINE Webhook POST 請求
- * @param {object} e - 事件物件
- */
-function doPost(e) {
-  try {
-    const msg = JSON.parse(e.postData.contents);
-    const event = msg.events[0];
-    // 只處理文字訊息
-    if (event.type !== 'message' || event.message.type !== 'text') {
-      return;
+const WebhookHandler = {
+  /**
+   * 主入口：處理 LINE Webhook POST 請求
+   * @param {object} e - 事件物件
+   */
+  handle: function (e) {
+    try {
+      const msg = JSON.parse(e.postData.contents);
+      const event = msg.events[0];
+      if (event.type !== 'message' || event.message.type !== 'text') return;
+
+      const replyToken = event.replyToken;
+      const userMessage = event.message.text;
+      const userId = event.source.userId;
+      const groupId = event.source.groupId || null;
+      const displayName = getUserDisplayName(userId);
+      recordUser(userId, displayName);
+
+      if (!replyToken) return;
+
+      const replyText = this.processUserMessage(userMessage, userId, displayName, groupId);
+      logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
+      this.sendReply(replyToken, replyText);
+    } catch (error) {
+      logError('❌ Webhook處理錯誤:' + error.message);
     }
-    const replyToken = event.replyToken;
-    const userMessage = event.message.text;
-    const userId = event.source.userId;
-    const groupId = event.source.groupId || null;
-    // 記錄使用者資訊
-    const displayName = getUserDisplayName(userId);
-    recordUser(userId, displayName);
-    if (!replyToken) {
-      return;
-    }
-    // 處理使用者訊息
-    const replyText = processUserMessage(userMessage, userId, displayName, groupId);
-    // 記錄操作日誌
-    logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
-    // 回覆訊息
-    sendReply(replyToken, replyText);
-  } catch (error) {
-    logError('❌ Webhook處理錯誤:' + error.message);
   }
-}
+};
 
 /**
  * 處理使用者訊息
