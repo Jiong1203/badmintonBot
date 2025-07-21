@@ -2,5 +2,5 @@
 // 其餘邏輯請於 handlers/webhook.gs 及各模組維護
 
 function doPost(e) {
-  return doPost(e); // handlers/webhook.gs 需有同名 function
+  return WebhookHandler.handle(e);
 }
