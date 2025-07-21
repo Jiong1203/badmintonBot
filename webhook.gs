@@ -23,9 +23,9 @@ const WebhookHandler = {
 
       if (!replyToken) return;
 
-      const replyText = this.processUserMessage(userMessage, userId, displayName, groupId);
+      const replyText = processUserMessage(userMessage, userId, displayName, groupId);
       logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
-      this.sendReply(replyToken, replyText);
+      sendReply(replyToken, replyText);
     } catch (error) {
       logError('❌ Webhook處理錯誤:' + error.message);
     }
