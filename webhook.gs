@@ -48,21 +48,20 @@ function processUserMessage(userMessage, userId, displayName, groupId) {
     logError('📦 聊天紀錄: ' + userMessage, userId, displayName);
     return '';
   }
-  // 處理報名指令（新格式）
+  // 先處理精準指令（如教學）
+  const commandResult = handleCommand(userMessage, groupId);
+  if (commandResult.tutorial) {
+    return commandResult.tutorial;
+  }
+  if (commandResult.error) {
+    return commandResult.error;
+  }
   if (userMessage.startsWith('!報名')) {
     if (typeof parseNewRegistrationCommand === 'function' && parseNewRegistrationCommand(userMessage)) {
       return registerToEventByDateTime(userId, displayName, groupId, userMessage);
     } else {
       return registerToEvent(userId, displayName, userMessage);
     }
-  }
-  // 處理其他指令
-  const commandResult = handleCommand(userMessage, groupId);
-  if (commandResult.error) {
-    return commandResult.error;
-  }
-  if (commandResult.tutorial) {
-    return commandResult.tutorial;
   }
   if (commandResult.groupSetting) {
     return adminCommandHandler(groupId, userId, displayName, commandResult);
@@ -113,17 +112,18 @@ function handleCreateEventCommand(dateObj, userId, groupId) {
   dateObj.userId = userId;
   // 呼叫 createEvent 並取得 eventCode
   const eventCode = createEvent(dateObj);
-  return generateEventMessage(
+  // 產生開團訊息
+  return MESSAGE_TEMPLATES.EVENT_CREATED(
+    dateObj.groupName || '本群組',
     dateObj.eventDate,
-    dateObj.deadlineDate,
     dateObj.eventDay,
-    dateObj.deadlineDay,
-    dateObj.locationInfo,
     dateObj.startHour,
     dateObj.endHour,
-    dateObj.groupName,
-    dateObj.minCount,
-    eventCode
+    dateObj.locationInfo ? (dateObj.locationInfo.name || dateObj.locationInfo) : '未知場館',
+    eventCode,
+    dateObj.deadlineDate,
+    dateObj.deadlineDay,
+    dateObj.minCount || 4
   );
 }
 
