@@ -60,7 +60,7 @@ function processUserMessage(userMessage, userId, displayName, groupId) {
     if (typeof parseNewRegistrationCommand === 'function' && parseNewRegistrationCommand(userMessage)) {
       return registerToEventByDateTime(userId, displayName, groupId, userMessage);
     } else {
-      return registerToEvent(userId, displayName, userMessage);
+      return registerToEvent(userId, displayName, userMessage, groupId);
     }
   }
   if (commandResult.groupSetting) {
@@ -85,13 +85,13 @@ function processUserMessage(userMessage, userId, displayName, groupId) {
 function handleEventCommand(eventType, userId, displayName, groupId, userMessage) {
   switch (eventType) {
     case 'create':
-      return registerToEvent(userId, displayName, userMessage);
+      return registerToEvent(userId, displayName, userMessage, groupId);
     case 'update':
       return updateRegistrationByDateTime(userId, groupId, userMessage);
     case 'delete':
       return cancelRegistrationByDateTime(userId, groupId, userMessage);
     case 'list':
-      return getRegistrationList(userMessage);
+      return getRegistrationList(userMessage, groupId);
     case 'openList':
       return getOpenEventList(groupId);
     default:
