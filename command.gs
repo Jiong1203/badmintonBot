@@ -198,8 +198,7 @@ function adminCommandHandler(groupId, userId, displayName, groupSettingObj) {
   if (!isGroupAdmin(groupId, userId)) {
     return '⚠️ 僅限群組管理員可設定群組預設值';
   }
-
   // ⏬ 使用完整指令交由 groupSettingHandler 處理
-  const originalCommandText = groupSettingObj.originalCommand || `${action} ${value || ''}`.trim();
+  const originalCommandText = groupSettingObj.originalCommand || `!${action} ${value || ''}`.trim();
   return groupSettingHandler(groupId, userId, originalCommandText);
 }

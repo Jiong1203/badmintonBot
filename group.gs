@@ -147,10 +147,11 @@ function groupSettingHandler(groupId, userId, commandText) {
       return SUCCESS_MESSAGES.SETTING_UPDATED('最低成團人數', num);
     
     case '!查詢設定':
-      const settings = getRangeData(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, rowIndex, 1, 1, 6)[0];
-      const arenaInfo = getLocationByCode(settings[2]);
-      const arenaDisplay = arenaInfo ? `${arenaInfo.name}(${settings[2]})` : `（找不到代碼 ${settings[2]} 的場館）`;
-      return `📋 群組目前設定：\n- 球隊名稱：${settings[1]}\n- 預設場館：${arenaDisplay}\n- 時間區段：${settings[3]}\n- 截止日：活動日 -${settings[4]} 天\n- 成團人數：${settings[5]} 人`;
+      const settingsRow = findRowByValue(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, 0, groupId);
+      if (!settingsRow) return '⚠️ 查無本群組設定，請先由管理員設定！';
+      const arenaInfo = getLocationByCode(settingsRow[2]);
+      const arenaDisplay = arenaInfo ? `${arenaInfo.name}(${settingsRow[2]})` : `（找不到代碼 ${settingsRow[2]} 的場館）`;
+      return `📋 群組目前設定：\n- 球隊名稱：${settingsRow[1]}\n- 預設場館：${arenaDisplay}\n- 時間區段：${settingsRow[3]}\n- 截止日：活動日 -${settingsRow[4]} 天\n- 成團人數：${settingsRow[5]} 人`;
 
     case '!重置設定':
       const defaultValues = [[
