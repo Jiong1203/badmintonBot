@@ -74,7 +74,7 @@ const COMMAND_CONFIG = {
 // 訊息模板常數
 const MESSAGE_TEMPLATES = {
   EVENT_CREATED: (groupName, eventDate, weekday, startTime, endTime, location, eventCode, deadlineDate, deadlineDay, minCount) =>
-    `📣 ${groupName} 開團囉！\n📅 日期：${eventDate}（星期${weekday}）\n🕒 時間：${startTime}～${endTime}\n📍 地點：${location}\n📝 活動代碼：${eventCode}\n⏳ 截止時間：${deadlineDate}（星期${deadlineDay}）\n📊 成團人數門檻：${minCount}人\n請使用 "!報名 ${eventCode} 小明+2" 來報名 🙌`,
+    `📣 ${groupName} 開團囉！\n📅 日期：${eventDate}（星期${weekday}）\n🕒 時間：${startTime}-${endTime}\n📍 地點：${location}\n📝 活動代碼：${eventCode}\n⏳ 截止時間：${deadlineDate}（星期${'日一二三四五六'[deadlineDay]}）\n📊 成團人數門檻：${minCount}人\n請使用 "!報名 ${eventCode} 小明+2" 來報名 🙌`,
   ERROR_INVALID_FORMAT: '⚠️ 指令格式錯誤，請輸入"!教學" 來查看系統指令',
   ERROR_EVENT_CLOSED: (eventCode) => `⚠️ 活動 ${eventCode} 已截止報名`,
   ERROR_ALREADY_REGISTERED: (name, eventCode) => `⚠️ 您已經以「${name}」的名義報名過活動 ${eventCode}，如需修改請使用「!修改報名」指令`,

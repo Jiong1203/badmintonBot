@@ -150,10 +150,10 @@ function getRegistrationList(userMessage, groupId) {
   const arenaName = location?.name || arenaCode;
   const eventRegs = getSheetData(SHEETS_CONFIG.SHEETS.REGISTRATIONS)
     .filter(row => row[1] === eventCode && row[2] === groupId)
-    .map(row => ({ name: row[4], order: parseInt(row[5], 10) || 0 }))
+    .map(row => ({ name: row[4], order: parseInt(row[5], 10) || 0, remark: row[6] }))
     .sort((a, b) => a.order - b.order);
   if (eventRegs.length === 0) return `📭 目前尚無人報名活動 ${eventCode}。`;
-  const lines = eventRegs.map((reg, index) => `${index + 1}. ${reg.name}`);
+  const lines = eventRegs.map((reg, index) => `${index + 1}. ${reg.name} ${reg.remark}`);
   return `📋 活動 ${eventCode} 報名名單（共 ${lines.length} 人）\n` +
     `🏷️ 球隊：${groupName}\n📅 日期：${eventDate}\n⏰ 時間：${timeRange}\n` +
     `🏸 場館：${arenaName}\n📍 地址：${address}\n\n` + lines.join('\n');
