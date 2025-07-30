@@ -63,8 +63,8 @@ const COMMAND_CONFIG = {
   PREFIX: '!',
   PATTERNS: {
     REGISTRATION: /^!報名\s+([A-Z]\d{2})\s+(.+?)(?:\s+(.+))?$/,
-    UPDATE_REGISTRATION: /^!修改報名\s+([A-Z]\d{2})\s+(.+?)(?:\s+(.+))?$/,
-    CANCEL_REGISTRATION: /^!取消報名\s+([A-Z]\d{2})\s+(.+)$/,
+    UPDATE_REGISTRATION: /^!修改報名\s+([A-Z]\d{2})\s+(.+?)(?:\+(\d+))?(?:\s+(.+))?$/,
+    CANCEL_REGISTRATION: /^!取消報名\s+([A-Z]\d{2})\s+(.+?)(?:-(\d+))?$/,
     QUERY_REGISTRATION: /^!查詢報名\s+([A-Z]\d{2})$/,
     CREATE_EVENT: /^!(下下週|下週|週)([日一二三四五六])(?:(\d{1,2})[-~](\d{1,2}))?開團(?:\s+(.+))?$/,
     ADMIN_MODIFY: /^!(加入|移除)管理員\s+@?(.+)$/

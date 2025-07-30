@@ -85,7 +85,7 @@ function registerToEvent(userId, displayName, messageText, groupId) {
   if (!nameMatch) return ERROR_MESSAGES.INVALID_PARTICIPANT_FORMAT;
   const baseName = nameMatch[1].trim();
   const additionalCount = parseInt(nameMatch[2] || '0', 10);
-  const totalParticipants = additionalCount;
+  const totalParticipants = additionalCount == 0 ? additionalCount + 1 : additionalCount;
   const now = Utilities.formatDate(new Date(), USER_CONFIG.TIMEZONE, USER_CONFIG.DATE_FORMAT);
 
   const eventRegistrations = getSheetData(SHEETS_CONFIG.SHEETS.REGISTRATIONS)
@@ -163,7 +163,7 @@ function getRegistrationList(userMessage, groupId) {
 // 但內部資料操作需手動改為 getSheetData, setCellValue, appendRow, deleteRow 等
 // 以下為示意，實際修改更複雜，暫時保留舊寫法，待後續優化
 function updateRegistration(userId, messageText, groupId) {
-  const match = messageText.match(/^!修改報名\s+(\w+)\s+(.+?)(?:\+(\d+))?(?:\s+(.*))?$/);
+  const match = messageText.trim().match(COMMAND_CONFIG.PATTERNS.UPDATE_REGISTRATION);
   if (!match) return '❌ 指令格式錯誤，請使用: !修改報名 F01 小明+2 備註內容';
   const [, eventCode, baseName, countStr, remark] = match;
   const allEvents = getSheetData(SHEETS_CONFIG.SHEETS.EVENTS);
@@ -243,7 +243,7 @@ function updateRegistration(userId, messageText, groupId) {
 }
 
 function cancelRegistration(userId, userMessage, groupId) {
-  const match = userMessage.match(/^!取消報名\s+([A-Z]\d{2})\s+(.+?)(?:-(\d+))?$/);
+  const match = userMessage.trim().match(COMMAND_CONFIG.PATTERNS.CANCEL_REGISTRATION);
   if (!match) {
     return '⚠️ 指令格式錯誤，請使用 "!取消報名 活動代碼 暱稱" 或 "!取消報名 活動代碼 暱稱-2"';
   }
