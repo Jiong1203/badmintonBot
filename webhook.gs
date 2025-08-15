@@ -24,7 +24,6 @@ const WebhookHandler = {
       if (!replyToken) return;
 
       const replyText = processUserMessage(userMessage, userId, displayName, groupId);
-      logError('📦 Webhook觸發 message: ' + JSON.stringify(msg), userId, displayName);
       sendReply(replyToken, replyText);
     } catch (error) {
       logError('❌ Webhook處理錯誤:' + error.message);
@@ -45,7 +44,6 @@ function processUserMessage(userMessage, userId, displayName, groupId) {
   userMessage = userMessage.replace(/！/g, '!');
   // 檢查是否為指令
   if (!userMessage.startsWith(COMMAND_CONFIG.PREFIX)) {
-    logError('📦 聊天紀錄: ' + userMessage, userId, displayName);
     return '';
   }
   // 先處理精準指令（如教學）
