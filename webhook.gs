@@ -9,16 +9,20 @@ const WebhookHandler = {
    * @param {object} e - 事件物件
    */
   handle: function (e) {
+    let userMessage = '';
+    let userId = '';
+    let displayName = '';
+    
     try {
       const msg = JSON.parse(e.postData.contents);
       const event = msg.events[0];
       if (event.type !== 'message' || event.message.type !== 'text') return;
 
       const replyToken = event.replyToken;
-      const userMessage = event.message.text;
-      const userId = event.source.userId;
+      userMessage = event.message.text;
+      userId = event.source.userId;
       const groupId = event.source.groupId || null;
-      const displayName = getUserDisplayName(userId);
+      displayName = getUserDisplayName(userId);
       recordUser(userId, displayName);
 
       if (!replyToken) return;
@@ -26,7 +30,7 @@ const WebhookHandler = {
       const replyText = processUserMessage(userMessage, userId, displayName, groupId);
       sendReply(replyToken, replyText);
     } catch (error) {
-      logError('❌ Webhook處理錯誤:' + error.message);
+      logError('❌ Webhook處理錯誤:' + error.message + ' / 原始訊息:' + userMessage, userId, displayName);
     }
   }
 };
