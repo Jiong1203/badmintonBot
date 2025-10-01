@@ -16,10 +16,8 @@ const WebhookHandler = {
     try {
       const msg = JSON.parse(e.postData.contents);
       const event = msg.events[0];
-      if (event.type !== 'message' || event.message.type !== 'text') return;
-
+      
       const replyToken = event.replyToken;
-      userMessage = event.message.text;
       userId = event.source.userId;
       const groupId = event.source.groupId || null;
       displayName = getUserDisplayName(userId);
@@ -27,8 +25,22 @@ const WebhookHandler = {
 
       if (!replyToken) return;
 
-      const replyText = processUserMessage(userMessage, userId, displayName, groupId);
-      sendReply(replyToken, replyText);
+      // 處理不同類型的事件
+      if (event.type === 'message' && event.message.type === 'text') {
+        userMessage = event.message.text;
+        
+        // 特殊處理 !開團 指令
+        if (userMessage === '!開團') {
+          handleFlexCreateEvent(userId, groupId, replyToken);
+        } else {
+          const replyText = processUserMessage(userMessage, userId, displayName, groupId);
+          sendReply(replyToken, replyText);
+        }
+      } else if (event.type === 'postback') {
+        // 處理 Postback 事件（Flex Message 按鈕點擊）
+        const postbackData = event.postback.data;
+        handleFlexPostback(userId, groupId, replyToken, postbackData);
+      }
     } catch (error) {
       logError('❌ Webhook處理錯誤:' + error.message + ' / 原始訊息:' + userMessage, userId, displayName);
     }
@@ -46,6 +58,7 @@ const WebhookHandler = {
 function processUserMessage(userMessage, userId, displayName, groupId) {
   // 支援全形驚嘆號
   userMessage = userMessage.replace(/！/g, '!');
+  
   // 檢查是否為指令
   if (!userMessage.startsWith(COMMAND_CONFIG.PREFIX)) {
     return '';
