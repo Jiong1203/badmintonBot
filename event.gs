@@ -11,7 +11,7 @@ function updateEventParticipantCount(eventCode, groupId) {
   const allEvents = getSheetData(SHEETS_CONFIG.SHEETS.EVENTS);
   const eventRowIndex = allEvents.findIndex(row => row[1] === eventCode && row[2] === groupId);
   if (eventRowIndex !== -1) {
-    setCellValue(SHEETS_CONFIG.SHEETS.EVENTS, eventRowIndex + 1, 10, newTotal);
+    setCellValue(SHEETS_CONFIG.SHEETS.EVENTS, eventRowIndex + 1, 9, newTotal);
   }
 }
 
@@ -43,7 +43,7 @@ function createEvent(obj) {
     eventId, nextCode, obj.groupId,
     obj.eventDate, obj.eventDay, timeRange,
     location.arenaCode, location.address,
-    obj.deadlineDate, 0, // joinedPeople
+    0, // joinedPeople
     EVENT_CONFIG.STATUS.OPEN, obj.userId, createDate
   ];
 
@@ -66,7 +66,7 @@ function getDayCode(dayChar) {
 function isEventOpen(eventCode, groupId) {
   const allEvents = getSheetData(SHEETS_CONFIG.SHEETS.EVENTS);
   const event = allEvents.find(row => row[1] === eventCode && row[2] === groupId);
-  return event && event[10] === EVENT_CONFIG.STATUS.OPEN;
+  return event && event[9] === EVENT_CONFIG.STATUS.OPEN;
 }
 
 /**
@@ -111,7 +111,7 @@ function registerToEvent(userId, displayName, messageText, groupId) {
  */
 function getOpenEventList(groupId) {
   const allEvents = getSheetData(SHEETS_CONFIG.SHEETS.EVENTS);
-  const openEvents = allEvents.filter(row => row[2] === groupId && row[10] === EVENT_CONFIG.STATUS.OPEN);
+  const openEvents = allEvents.filter(row => row[2] === groupId && row[9] === EVENT_CONFIG.STATUS.OPEN);
 
   if (openEvents.length === 0) return '📭 此群組目前沒有開放報名中的活動';
 
@@ -121,7 +121,7 @@ function getOpenEventList(groupId) {
 
   let msg = `📌 ${groupName} 目前開放中的活動：\n`;
   for (const row of openEvents) {
-    const [, eventCode, , rawDate, , timeRange, arenaCode, , , joinedPeople] = row;
+    const [, eventCode, , rawDate, , timeRange, arenaCode, , joinedPeople] = row;
     const formattedDate = Utilities.formatDate(new Date(rawDate), 'Asia/Taipei', 'yyyy/MM/dd');
     const location = locationMapList.find(loc => loc.arenaCode === arenaCode);
     const arenaName = location ? location.name : '未知場館';
@@ -234,7 +234,7 @@ function updateRegistration(userId, messageText, groupId) {
   const eventData = eventSheet.getDataRange().getValues();
   const eventRowIndex = eventData.findIndex(row => row[1] === eventCode && row[2] === groupId);
   if (eventRowIndex !== -1) {
-    eventSheet.getRange(eventRowIndex + 1, 10).setValue(newTotal);
+    eventSheet.getRange(eventRowIndex + 1, 9).setValue(newTotal);
   }
   // 重新排序
   reorderRegistrations(eventCode, groupId);
@@ -298,7 +298,7 @@ function closePastEvents() {
   const now = new Date();
   for (let i = 1; i < allEvents.length; i++) {
     const row = allEvents[i];
-    const status = row[10];
+    const status = row[9];
     if (status !== EVENT_CONFIG.STATUS.OPEN) continue;
     const eventDate = row[3];
     const timeRange = row[5];
@@ -308,7 +308,7 @@ function closePastEvents() {
     const eventStart = new Date(eventDate);
     eventStart.setHours(startHour, 0, 0);
     if (now >= eventStart) {
-      setCellValue(SHEETS_CONFIG.SHEETS.EVENTS, i + 1, 11, EVENT_CONFIG.STATUS.CLOSED);
+      setCellValue(SHEETS_CONFIG.SHEETS.EVENTS, i + 1, 10, EVENT_CONFIG.STATUS.CLOSED);
     }
   }
 }

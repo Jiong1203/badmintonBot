@@ -73,10 +73,10 @@ const COMMAND_CONFIG = {
 
 // 訊息模板常數
 const MESSAGE_TEMPLATES = {
-  EVENT_CREATED: (groupName, eventDate, weekday, startTime, endTime, location, eventCode, deadlineDate, deadlineDay, minCount) => {
+  EVENT_CREATED: (groupName, eventDate, weekday, startTime, endTime, location, eventCode, minCount) => {
     const formattedStartTime = formatTime(startTime);
     const formattedEndTime = formatTime(endTime);
-    return `📣 ${groupName} 開團囉！\n📅 日期：${eventDate}（星期${weekday}）\n🕒 時間：${formattedStartTime}-${formattedEndTime}\n📍 地點：${location}\n📝 活動代碼：${eventCode}\n⏳ 截止時間：${deadlineDate}（星期${'日一二三四五六'[deadlineDay]}）\n📊 成團人數門檻：${minCount}人\n請使用 "!報名 ${eventCode} 小明+2" 來報名 🙌`;
+    return `📣 ${groupName} 開團囉！\n📅 日期：${eventDate}（星期${weekday}）\n🕒 時間：${formattedStartTime}-${formattedEndTime}\n📍 地點：${location}\n📝 活動代碼：${eventCode}\n📊 成團人數門檻：${minCount}人\n請使用 "!報名 ${eventCode} 小明+2" 來報名 🙌`;
   },
   ERROR_INVALID_FORMAT: '⚠️ 指令格式錯誤，請輸入"!教學" 來查看系統指令',
   ERROR_EVENT_CLOSED: (eventCode) => `⚠️ 活動 ${eventCode} 已截止報名`,

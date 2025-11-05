@@ -136,8 +136,6 @@ function handleCreateEventCommand(dateObj, userId, groupId) {
     dateObj.endHour,
     dateObj.locationInfo ? (dateObj.locationInfo.name || dateObj.locationInfo) : '未知場館',
     eventCode,
-    dateObj.deadlineDate,
-    dateObj.deadlineDay,
     dateObj.minCount || 4
   );
 }

@@ -383,8 +383,6 @@ function confirmEventCreation(userId, groupId, replyToken, eventData) {
       startHour: startHour,
       endHour: endHour,
       locationInfo: eventData.location,
-      deadlineDate: formatDate(calculateDeadlineDate(eventDate, 2).deadlineDate),
-      deadlineDay: calculateDeadlineDate(eventDate, 2).deadlineDay,
       minCount: 4
     };
 
@@ -421,8 +419,6 @@ function createEventAnnouncement(eventCode, eventObj) {
     eventObj.endHour,
     eventObj.locationInfo.name,
     eventCode,
-    eventObj.deadlineDate,
-    eventObj.deadlineDay,
     eventObj.minCount
   );
 }

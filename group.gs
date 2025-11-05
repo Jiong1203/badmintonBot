@@ -30,7 +30,6 @@ function tryBecomeAdmin(groupId, userId, userName) {
       GROUP_CONFIG.DEFAULT_GROUP_NAME,
       GROUP_CONFIG.DEFAULT_ARENA_CODE,
       GROUP_CONFIG.DEFAULT_TIME_RANGE,
-      GROUP_CONFIG.DEFAULT_DEADLINE_DAYS,
       GROUP_CONFIG.DEFAULT_MIN_COUNT
     ];
     appendRow(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, defaultSettings);
@@ -111,7 +110,6 @@ function groupSettingHandler(groupId, userId, commandText) {
       GROUP_CONFIG.DEFAULT_GROUP_NAME,
       GROUP_CONFIG.DEFAULT_ARENA_CODE,
       GROUP_CONFIG.DEFAULT_TIME_RANGE,
-      GROUP_CONFIG.DEFAULT_DEADLINE_DAYS,
       GROUP_CONFIG.DEFAULT_MIN_COUNT
     ]);
     rowIndex = getLastRow(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS);
@@ -134,16 +132,10 @@ function groupSettingHandler(groupId, userId, commandText) {
       setCellValue(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, rowIndex, 4, value);
       return SUCCESS_MESSAGES.SETTING_UPDATED('預設時間', value);
 
-    case '!設定截止':
-      const days = parseInt(value, 10);
-      if (isNaN(days)) return ERROR_MESSAGES.INVALID_NUMBER;
-      setCellValue(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, rowIndex, 5, days);
-      return `✅ 截止規則已設定為活動日前 ${days} 天`;
-
     case '!設定人數':
       const num = parseInt(value, 10);
       if (isNaN(num)) return ERROR_MESSAGES.INVALID_NUMBER;
-      setCellValue(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, rowIndex, 6, num);
+      setCellValue(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, rowIndex, 5, num);
       return SUCCESS_MESSAGES.SETTING_UPDATED('最低成團人數', num);
     
     case '!查詢設定':
@@ -151,14 +143,13 @@ function groupSettingHandler(groupId, userId, commandText) {
       if (!settingsRow) return '⚠️ 查無本群組設定，請先由管理員設定！';
       const arenaInfo = getLocationByCode(settingsRow[2]);
       const arenaDisplay = arenaInfo ? `${arenaInfo.name}(${settingsRow[2]})` : `（找不到代碼 ${settingsRow[2]} 的場館）`;
-      return `📋 群組目前設定：\n- 球隊名稱：${settingsRow[1]}\n- 預設場館：${arenaDisplay}\n- 時間區段：${settingsRow[3]}\n- 截止日：活動日 -${settingsRow[4]} 天\n- 成團人數：${settingsRow[5]} 人`;
+      return `📋 群組目前設定：\n- 球隊名稱：${settingsRow[1]}\n- 預設場館：${arenaDisplay}\n- 時間區段：${settingsRow[3]}\n- 成團人數：${settingsRow[4]} 人`;
 
     case '!重置設定':
       const defaultValues = [[
         GROUP_CONFIG.DEFAULT_GROUP_NAME,
         GROUP_CONFIG.DEFAULT_ARENA_CODE,
         GROUP_CONFIG.DEFAULT_TIME_RANGE,
-        GROUP_CONFIG.DEFAULT_DEADLINE_DAYS,
         GROUP_CONFIG.DEFAULT_MIN_COUNT
       ]];
       setRangeData(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, rowIndex, 2, defaultValues);
