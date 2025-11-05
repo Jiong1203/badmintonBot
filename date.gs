@@ -83,12 +83,22 @@ function formatFullDate(date) {
 }
 
 /**
- * 格式化時間為 HH:MM
- * @param {number} hour - 小時
+ * 格式化時間顯示
+ * 如果時間是 4 位數（含分鐘），則格式化為 "HH:MM"
+ * 如果時間是 1-3 位數（整點），則返回原數字字串
+ * @param {number} time - 時間數值（如 19 或 1930）
  * @returns {string} 格式化後的時間字串
  */
-function formatTime(hour) {
-  return String(hour).padStart(2, '0') + ':00';
+function formatTime(time) {
+  if (time >= 1000 && time <= 9999) {
+    // 4 位數，含分鐘，轉換為 "HH:MM"
+    const timeStr = ('0000' + String(time)).slice(-4);
+    const hour = timeStr.substring(0, 2);
+    const minute = timeStr.substring(2, 4);
+    return hour + ':' + minute;
+  }
+  // 1-3 位數，整點時間，保持原樣
+  return String(time);
 }
 
 /**

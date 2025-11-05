@@ -81,8 +81,8 @@ function handleCommand(userCommand, groupId = null) {
     };
   }
 
-  // 處理：!週五20-22開團 地點
-  const openEventMatch = normalizedCommand.match(/^!(下下週|下週|週)([日一二三四五六])(?:(\d{1,2})[-~](\d{1,2}))?開團(?:\s+(.+))?$/);
+  // 處理：!週五20-22開團 地點 或 !週二1930-2130開團 地點
+  const openEventMatch = normalizedCommand.match(/^!(下下週|下週|週)([日一二三四五六])(?:(\d{1,4})[-~](\d{1,4}))?開團(?:\s+(.+))?$/);
   if (!openEventMatch) {
     return { error: ERROR_MSG.parse };
   }
