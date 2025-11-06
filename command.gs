@@ -3,7 +3,7 @@
  * 指令統一處理模組
  */
 // 依賴 utils/date.gs, utils/location.gs, data/sheets.gs, user.gs
-// 請直接使用 getWeekdayNumber, changeChinese, calculateDate, calculateDeadlineDate, formatDate, findLocationInfo, getSheetData, appendRow 等工具
+// 請直接使用 getWeekdayNumber, changeChinese, calculateDate, formatDate, findLocationInfo, getSheetData, appendRow 等工具
 
 // 教學與錯誤訊息集中
 const HELP_TEXT = {

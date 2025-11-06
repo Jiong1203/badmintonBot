@@ -47,22 +47,6 @@ function calculateDate(weekday, weekOffset = 0) {
 }
 
 /**
- * 計算報名截止日
- * @param {Date} eventDate - 活動日期
- * @param {number} daysBefore - 活動日前幾天截止
- * @returns {object} { deadlineDate, deadlineDay }
- */
-function calculateDeadlineDate(eventDate, daysBefore) {
-  const deadline = new Date(eventDate);
-  deadline.setDate(eventDate.getDate() - daysBefore);
-  const day = deadline.getDay();
-  return {
-    deadlineDate: deadline,
-    deadlineDay: day
-  };
-}
-
-/**
  * 格式化日期為 MM/DD
  * @param {Date} date - 日期物件
  * @returns {string} 格式化後的日期字串
@@ -99,6 +83,25 @@ function formatTime(time) {
   }
   // 1-3 位數，整點時間，保持原樣
   return String(time);
+}
+
+/**
+ * 格式化時間範圍字串
+ * @param {string} timeRange - 時間範圍字串 (如 "19-21" 或 "1930-2130")
+ * @returns {string} 格式化後的時間範圍字串 (如 "19-21" 或 "19:30-21:30")
+ */
+function formatTimeRange(timeRange) {
+  if (!timeRange || (!timeRange.includes('-') && !timeRange.includes('~'))) {
+    return timeRange;
+  }
+  const separator = timeRange.includes('-') ? '-' : '~';
+  const [start, end] = timeRange.split(/[-~]/).map(x => parseInt(x, 10));
+  if (isNaN(start) || isNaN(end)) {
+    return timeRange;
+  }
+  const formattedStart = formatTime(start);
+  const formattedEnd = formatTime(end);
+  return formattedStart + separator + formattedEnd;
 }
 
 /**

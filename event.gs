@@ -1,5 +1,5 @@
 // 依賴 utils/date.gs, utils/location.gs, data/sheets.gs, user.gs, log.gs
-// 請直接使用 getSheetData, appendRow, getWeekdayNumber, changeChinese, calculateDate, calculateDeadlineDate, formatDate, locationMap, findLocationInfo 等工具
+// 請直接使用 getSheetData, appendRow, getWeekdayNumber, changeChinese, calculateDate, formatDate, locationMap, findLocationInfo 等工具
 
 /**
  * 更新指定活動的總報名人數
@@ -125,7 +125,8 @@ function getOpenEventList(groupId) {
     const formattedDate = Utilities.formatDate(new Date(rawDate), 'Asia/Taipei', 'yyyy/MM/dd');
     const location = locationMapList.find(loc => loc.arenaCode === arenaCode);
     const arenaName = location ? location.name : '未知場館';
-    msg += `\n🔸 代碼：${eventCode}\n📅 日期：${formattedDate}\n⏰ 時間：${timeRange}\n🏸 場館：${arenaName}（${arenaCode}）\n👥 已報名：${joinedPeople} 人\n`;
+    const formattedTimeRange = formatTimeRange(timeRange);
+    msg += `\n🔸 代碼：${eventCode}\n📅 日期：${formattedDate}\n⏰ 時間：${formattedTimeRange}\n🏸 場館：${arenaName}（${arenaCode}）\n👥 已報名：${joinedPeople} 人\n`;
   }
 
   return msg.trim();
@@ -154,8 +155,9 @@ function getRegistrationList(userMessage, groupId) {
     .sort((a, b) => a.order - b.order);
   if (eventRegs.length === 0) return `📭 目前尚無人報名活動 ${eventCode}。`;
   const lines = eventRegs.map((reg, index) => `${index + 1}. ${reg.name} ${reg.remark}`);
+  const formattedTimeRange = formatTimeRange(timeRange);
   return `📋 活動 ${eventCode} 報名名單（共 ${lines.length} 人）\n` +
-    `🏷️ 球隊：${groupName}\n📅 日期：${eventDate}\n⏰ 時間：${timeRange}\n` +
+    `🏷️ 球隊：${groupName}\n📅 日期：${eventDate}\n⏰ 時間：${formattedTimeRange}\n` +
     `🏸 場館：${arenaName}\n📍 地址：${address}\n\n` + lines.join('\n');
 }
 
@@ -365,7 +367,8 @@ function registerToEventByDateTime(userId, displayName, groupId, messageText) {
   }
   const eventCode = findEventCodeByGroupDateTime(groupId, parsed.date, parsed.timeRange);
   if (!eventCode) {
-    return `⚠️ 找不到 ${parsed.date} ${parsed.timeRange} 的開團，請確認日期與時間格式正確。`;
+    const formattedTimeRange = formatTimeRange(parsed.timeRange);
+    return `⚠️ 找不到 ${parsed.date} ${formattedTimeRange} 的開團，請確認日期與時間格式正確。`;
   }
   // 組合原本報名格式 "!報名 eventCode 暱稱+人數 備註"
   const regMsg = `!報名 ${eventCode} ${parsed.nicknameAndCount} ${parsed.note}`.trim();
@@ -385,7 +388,8 @@ function cancelRegistrationByDateTime(userId, groupId, messageText) {
   const [, date, timeRange, nameAndCount] = match;
   const eventCode = findEventCodeByGroupDateTime(groupId, date, timeRange);
   if (!eventCode) {
-    return `⚠️ 找不到 ${date} ${timeRange} 的開團，請確認日期與時間格式正確。`;
+    const formattedTimeRange = formatTimeRange(timeRange);
+    return `⚠️ 找不到 ${date} ${formattedTimeRange} 的開團，請確認日期與時間格式正確。`;
   }
   // 組合舊格式 "!取消報名 eventCode 小明-2"
   const regMsg = `!取消報名 ${eventCode} ${nameAndCount}`;
@@ -405,7 +409,8 @@ function updateRegistrationByDateTime(userId, groupId, messageText) {
   const [, date, timeRange, nameAndCount, remark] = match;
   const eventCode = findEventCodeByGroupDateTime(groupId, date, timeRange);
   if (!eventCode) {
-    return `⚠️ 找不到 ${date} ${timeRange} 的開團，請確認日期與時間格式正確。`;
+    const formattedTimeRange = formatTimeRange(timeRange);
+    return `⚠️ 找不到 ${date} ${formattedTimeRange} 的開團，請確認日期與時間格式正確。`;
   }
   // 組合舊格式 "!修改報名 eventCode 小明+2 備註"
   const regMsg = `!修改報名 ${eventCode} ${nameAndCount}${remark ? ' ' + remark : ''}`;
