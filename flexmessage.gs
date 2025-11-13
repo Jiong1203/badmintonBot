@@ -114,11 +114,10 @@ function createEventCreationCard() {
             type: 'button',
             action: {
               type: 'postback',
-              label: '確認開團',
-              data: 'action=confirm_event'
+              label: '選擇日期',
+              data: 'action=select_date'
             },
-            style: 'primary',
-            color: '#4ECDC4'
+            style: 'secondary'
           }
         ],
         spacing: 'sm'
@@ -311,37 +310,55 @@ function createUpdatedEventCreationCard(eventData) {
       },
       footer: {
         type: 'box',
-        layout: 'horizontal',
+        layout: 'vertical',
         contents: [
           {
-            type: 'button',
-            action: {
-              type: 'postback',
-              label: '選擇地點',
-              data: 'action=select_location'
-            },
-            style: eventData.location ? 'secondary' : 'primary',
-            color: eventData.location ? '#CCCCCC' : '#FF6B6B'
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'button',
+                action: {
+                  type: 'postback',
+                  label: '選擇地點',
+                  data: 'action=select_location'
+                },
+                style: eventData.location ? 'secondary' : 'primary',
+                color: eventData.location ? '#CCCCCC' : '#FF6B6B'
+              },
+              {
+                type: 'button',
+                action: {
+                  type: 'postback',
+                  label: '選擇時間',
+                  data: 'action=select_time'
+                },
+                style: eventData.timeRange ? 'secondary' : 'primary',
+                color: eventData.timeRange ? '#CCCCCC' : '#FF6B6B'
+              },
+              {
+                type: 'button',
+                action: {
+                  type: 'postback',
+                  label: '選擇日期',
+                  data: 'action=select_date'
+                },
+                style: eventData.date ? 'secondary' : 'primary',
+                color: eventData.date ? '#CCCCCC' : '#FF6B6B'
+              }
+            ],
+            spacing: 'sm'
           },
           {
             type: 'button',
             action: {
               type: 'postback',
-              label: '選擇時間',
-              data: 'action=select_time'
+              label: '✅ 確認開團',
+              data: 'action=confirm_event'
             },
-            style: eventData.timeRange ? 'secondary' : 'primary',
-            color: eventData.timeRange ? '#CCCCCC' : '#FF6B6B'
-          },
-          {
-            type: 'button',
-            action: {
-              type: 'postback',
-              label: '選擇日期',
-              data: 'action=select_date'
-            },
-            style: eventData.date ? 'secondary' : 'primary',
-            color: eventData.date ? '#CCCCCC' : '#FF6B6B'
+            style: 'primary',
+            color: '#4ECDC4',
+            margin: 'md'
           }
         ],
         spacing: 'sm'
@@ -464,6 +481,25 @@ function sendReplyWithQuickReply(replyToken, message) {
 }
 
 /**
+ * 解析查詢字串（Google Apps Script 不支援 URLSearchParams）
+ * @param {string} queryString - 查詢字串，如 "action=select_location&location=K01"
+ * @returns {object} 解析後的參數物件
+ */
+function parseQueryString(queryString) {
+  const params = {};
+  if (!queryString) return params;
+  
+  const pairs = queryString.split('&');
+  for (let i = 0; i < pairs.length; i++) {
+    const pair = pairs[i].split('=');
+    const key = decodeURIComponent(pair[0] || '');
+    const value = decodeURIComponent(pair[1] || '');
+    params[key] = value;
+  }
+  return params;
+}
+
+/**
  * 處理 Postback 事件
  * @param {string} userId - 使用者ID
  * @param {string} groupId - 群組ID
@@ -471,8 +507,8 @@ function sendReplyWithQuickReply(replyToken, message) {
  * @param {string} postbackData - Postback 資料
  */
 function handleFlexPostback(userId, groupId, replyToken, postbackData) {
-  const params = new URLSearchParams(postbackData);
-  const action = params.get('action');
+  const params = parseQueryString(postbackData);
+  const action = params['action'];
   
   // 取得或創建使用者會話資料
   let sessionData = getSessionData(userId) || {
@@ -481,6 +517,35 @@ function handleFlexPostback(userId, groupId, replyToken, postbackData) {
     date: null
   };
 
+  // 處理帶參數的選擇（先檢查是否有參數）
+  if (action === 'select_location' && params['location']) {
+    const locationCode = params['location'];
+    const location = getLocationByCode(locationCode);
+    if (location) {
+      sessionData.location = location;
+      saveSessionData(userId, sessionData);
+      updateEventCreationCard(replyToken, sessionData);
+    }
+    return;
+  }
+  
+  if (action === 'select_time' && params['time']) {
+    const timeRange = params['time'];
+    sessionData.timeRange = timeRange;
+    saveSessionData(userId, sessionData);
+    updateEventCreationCard(replyToken, sessionData);
+    return;
+  }
+  
+  if (action === 'select_date' && params['date']) {
+    const date = params['date'];
+    sessionData.date = date;
+    saveSessionData(userId, sessionData);
+    updateEventCreationCard(replyToken, sessionData);
+    return;
+  }
+
+  // 處理不帶參數的動作
   switch (action) {
     case 'select_location':
       handleLocationSelection(replyToken);
@@ -499,26 +564,7 @@ function handleFlexPostback(userId, groupId, replyToken, postbackData) {
       break;
       
     default:
-      // 處理帶參數的選擇
-      if (action === 'select_location' && params.get('location')) {
-        const locationCode = params.get('location');
-        const location = getLocationByCode(locationCode);
-        if (location) {
-          sessionData.location = location;
-          saveSessionData(userId, sessionData);
-          updateEventCreationCard(replyToken, sessionData);
-        }
-      } else if (action === 'select_time' && params.get('time')) {
-        const timeRange = params.get('time');
-        sessionData.timeRange = timeRange;
-        saveSessionData(userId, sessionData);
-        updateEventCreationCard(replyToken, sessionData);
-      } else if (action === 'select_date' && params.get('date')) {
-        const date = params.get('date');
-        sessionData.date = date;
-        saveSessionData(userId, sessionData);
-        updateEventCreationCard(replyToken, sessionData);
-      }
+      logError('未知的 Postback 動作: ' + action, userId);
       break;
   }
 }
