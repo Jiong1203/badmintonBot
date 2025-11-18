@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>開團表單 - 羽球人</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .time-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .time-group input {
+      flex: 1;
+    }
+
+    .time-separator {
+      font-size: 18px;
+      color: #999;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #666;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #667eea;
+    }
+
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .success {
+      background: #efe;
+      color: #3c3;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .info-text {
+      font-size: 12px;
+      color: #999;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏸 開團表單</h1>
+    
+    <div class="error" id="errorMessage"></div>
+    <div class="success" id="successMessage"></div>
+    <div class="loading" id="loading">處理中...</div>
+
+    <form id="eventForm">
+      <div class="form-group">
+        <label for="eventDate">📅 日期</label>
+        <input type="date" id="eventDate" name="eventDate" required>
+        <div class="info-text">選擇活動日期</div>
+      </div>
+
+      <div class="form-group">
+        <label for="startHour">⏰ 時間</label>
+        <div class="time-group">
+          <input type="number" id="startHour" name="startHour" min="0" max="23" placeholder="開始" required>
+          <span class="time-separator">-</span>
+          <input type="number" id="endHour" name="endHour" min="0" max="23" placeholder="結束" required>
+        </div>
+        <div class="info-text">請輸入 0-23 的數字（例如：20-22）</div>
+      </div>
+
+      <div class="form-group">
+        <label for="locationCode">📍 場館</label>
+        <select id="locationCode" name="locationCode" required>
+          <option value="">載入中...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="minCount">👥 最低成團人數</label>
+        <input type="number" id="minCount" name="minCount" min="1" max="20" value="4" required>
+        <div class="info-text">活動需要至少幾人才能成團</div>
+      </div>
+
+      <div class="button-group">
+        <button type="button" class="btn-secondary" onclick="closeLiff()">取消</button>
+        <button type="submit" class="btn-primary" id="submitBtn">確認開團</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    let userId = '';
+    let groupId = '';
+    let webAppUrl = '';
+
+    // 初始化 LIFF
+    liff.init({ liffId: 'YOUR_LIFF_ID_HERE' })
+      .then(() => {
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        // 取得使用者資訊
+        const profile = liff.getProfile();
+        userId = profile.userId;
+
+        // 從 URL 參數取得 groupId
+        const urlParams = new URLSearchParams(window.location.search);
+        groupId = urlParams.get('groupId') || '';
+
+        // 取得 Apps Script Web App URL
+        webAppUrl = 'YOUR_WEB_APP_URL_HERE'; // 請替換為您的 Web App URL
+
+        // 載入群組設定和場館列表
+        loadInitialData();
+      })
+      .catch((err) => {
+        showError('初始化失敗：' + err.message);
+      });
+
+    // 載入初始資料
+    async function loadInitialData() {
+      try {
+        // 載入場館列表
+        const arenasResponse = await fetch(`${webAppUrl}?action=arenas`);
+        const arenas = await arenasResponse.json();
+        
+        const locationSelect = document.getElementById('locationCode');
+        locationSelect.innerHTML = '<option value="">請選擇場館</option>';
+        
+        arenas.forEach(arena => {
+          const option = document.createElement('option');
+          option.value = arena.arenaCode;
+          option.textContent = `${arena.arenaCode} - ${arena.name}`;
+          locationSelect.appendChild(option);
+        });
+
+        // 載入群組設定
+        if (groupId) {
+          const settingsResponse = await fetch(`${webAppUrl}?action=settings&groupId=${encodeURIComponent(groupId)}`);
+          const settings = await settingsResponse.json();
+          
+          // 設定預設值
+          if (settings.defaultArenaCode) {
+            locationSelect.value = settings.defaultArenaCode;
+          }
+          if (settings.startHour && settings.endHour) {
+            document.getElementById('startHour').value = settings.startHour;
+            document.getElementById('endHour').value = settings.endHour;
+          }
+          if (settings.minCount) {
+            document.getElementById('minCount').value = settings.minCount;
+          }
+        }
+
+        // 設定明天的日期為預設值
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('eventDate').value = tomorrow.toISOString().split('T')[0];
+
+      } catch (error) {
+        showError('載入資料失敗：' + error.message);
+      }
+    }
+
+    // 處理表單提交
+    document.getElementById('eventForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const loading = document.getElementById('loading');
+      
+      submitBtn.disabled = true;
+      loading.style.display = 'block';
+      hideError();
+      hideSuccess();
+
+      try {
+        // 取得表單資料
+        const formData = new FormData(e.target);
+        const eventDate = formData.get('eventDate');
+        const startHour = formData.get('startHour');
+        const endHour = formData.get('endHour');
+        const locationCode = formData.get('locationCode');
+        const minCount = formData.get('minCount');
+
+        // 計算星期
+        const date = new Date(eventDate);
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        const eventDay = weekdays[date.getDay()];
+
+        // 格式化日期為 MM/DD
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const formattedDate = `${month}/${day}`;
+
+        // 準備提交資料
+        const postData = {
+          userId: userId,
+          groupId: groupId,
+          eventDate: formattedDate,
+          eventDay: eventDay,
+          startHour: startHour,
+          endHour: endHour,
+          locationCode: locationCode,
+          minCount: minCount
+        };
+
+        // 發送 POST 請求
+        const response = await fetch(webAppUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(postData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSuccess('開團成功！活動代碼：' + result.eventCode);
+          
+          // 3 秒後關閉 LIFF
+          setTimeout(() => {
+            liff.closeWindow();
+          }, 3000);
+        } else {
+          showError(result.message || '開團失敗');
+          submitBtn.disabled = false;
+        }
+
+      } catch (error) {
+        showError('提交失敗：' + error.message);
+        submitBtn.disabled = false;
+      } finally {
+        loading.style.display = 'none';
+      }
+    });
+
+    // 關閉 LIFF
+    function closeLiff() {
+      liff.closeWindow();
+    }
+
+    // 顯示錯誤訊息
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
+
+    // 隱藏錯誤訊息
+    function hideError() {
+      document.getElementById('errorMessage').style.display = 'none';
+    }
+
+    // 顯示成功訊息
+    function showSuccess(message) {
+      const successDiv = document.getElementById('successMessage');
+      successDiv.textContent = message;
+      successDiv.style.display = 'block';
+    }
+
+    // 隱藏成功訊息
+    function hideSuccess() {
+      document.getElementById('successMessage').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
+

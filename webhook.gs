@@ -29,17 +29,17 @@ const WebhookHandler = {
       if (event.type === 'message' && event.message.type === 'text') {
         userMessage = event.message.text;
         
-        // 特殊處理 !開團 指令
+        // 特殊處理 !開團 指令（使用 LIFF）
         if (userMessage === '!開團') {
-          handleFlexCreateEvent(userId, groupId, replyToken);
+          handleLiffCreateEvent(userId, groupId, replyToken);
         } else {
           const replyText = processUserMessage(userMessage, userId, displayName, groupId);
           sendReply(replyToken, replyText);
         }
       } else if (event.type === 'postback') {
-        // 處理 Postback 事件（Flex Message 按鈕點擊）
-        const postbackData = event.postback.data;
-        handleFlexPostback(userId, groupId, replyToken, postbackData);
+        // 處理 Postback 事件（Flex Message 按鈕點擊 - 已註解，改用 LIFF）
+        // const postbackData = event.postback.data;
+        // handleFlexPostback(userId, groupId, replyToken, postbackData);
       }
     } catch (error) {
       logError('❌ Webhook處理錯誤:' + error.message + ' / 原始訊息:' + userMessage, userId, displayName);

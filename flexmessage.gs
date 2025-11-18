@@ -8,7 +8,11 @@
  * @param {string} userId - 使用者ID
  * @param {string} groupId - 群組ID
  * @param {string} replyToken - 回覆Token
+ * 
+ * 【已註解 - 改用 LIFF 版本】
+ * 如需恢復 Flex Message 版本，請取消註解並在 webhook.gs 中改回 handleFlexCreateEvent
  */
+/*
 function handleFlexCreateEvent(userId, groupId, replyToken) {
   // 檢查是否為管理員
   if (!isGroupAdmin(groupId, userId)) {
@@ -23,6 +27,7 @@ function handleFlexCreateEvent(userId, groupId, replyToken) {
   const flexMessage = createEventCreationCard();
   sendFlexMessage(replyToken, flexMessage);
 }
+*/
 
 /**
  * 創建開團選擇的 Flex Message 卡片
@@ -505,7 +510,11 @@ function parseQueryString(queryString) {
  * @param {string} groupId - 群組ID
  * @param {string} replyToken - 回覆Token
  * @param {string} postbackData - Postback 資料
+ * 
+ * 【已註解 - 改用 LIFF 版本】
+ * 如需恢復 Flex Message 版本，請取消註解並在 webhook.gs 中恢復 handleFlexPostback 的呼叫
  */
+/*
 function handleFlexPostback(userId, groupId, replyToken, postbackData) {
   const params = parseQueryString(postbackData);
   const action = params['action'];
@@ -568,6 +577,7 @@ function handleFlexPostback(userId, groupId, replyToken, postbackData) {
       break;
   }
 }
+*/
 
 /**
  * 取得使用者會話資料

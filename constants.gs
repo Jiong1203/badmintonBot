@@ -8,7 +8,10 @@ const LINE_CONFIG = {
   CHANNEL_ACCESS_TOKEN: 'TW2Hr46MLsq+Ue7P6PfJhPzVuOk4MZsrSh+KXLGCtgwyhzHth0BJh16thF1/+8VG4Z2FX4Sw1p3/nwko7UPNyBzxFD51NDihPRwA3GrIBOtlQWaPyNqchi1v0Kz5oRGAWujGuYttUWhBlagKhXEkbQdB04t89/1O/w1cDnyilFU=',
   API_BASE_URL: 'https://api.line.me/v2/bot',
   REPLY_URL: 'https://api.line.me/v2/bot/message/reply',
-  PROFILE_URL: 'https://api.line.me/v2/bot/profile/'
+  PROFILE_URL: 'https://api.line.me/v2/bot/profile/',
+  // LIFF 相關設定（需要在 LINE Developer Console 建立 LIFF App 後填入）
+  LIFF_ID: 'YOUR_LIFF_ID_HERE', // 請替換為您的 LIFF ID
+  LIFF_URL: 'https://liff.line.me/YOUR_LIFF_ID_HERE' // 請替換為您的 LIFF URL
 };
 
 // Google Sheets 相關常數
