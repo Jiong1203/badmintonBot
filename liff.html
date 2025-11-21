@@ -180,12 +180,7 @@
         <select id="locationCode" name="locationCode" required>
           <option value="">載入中...</option>
         </select>
-      </div>
-
-      <div class="form-group">
-        <label for="minCount">👥 最低成團人數</label>
-        <input type="number" id="minCount" name="minCount" min="1" max="20" value="4" required>
-        <div class="info-text">活動需要至少幾人才能成團</div>
+        <div class="info-text">選擇活動場館</div>
       </div>
 
       <div class="button-group">
@@ -198,7 +193,6 @@
   <script>
     let userId = '';
     let groupId = '';
-    let webAppUrl = '';
 
     // 初始化 LIFF
     liff.init({ liffId: '2008546267-jay6E0A4' })
@@ -215,9 +209,6 @@
         // 從 URL 參數取得 groupId
         const urlParams = new URLSearchParams(window.location.search);
         groupId = urlParams.get('groupId') || '';
-
-        // 取得 Apps Script Web App URL
-        webAppUrl = 'https://script.google.com/macros/s/AKfycbxJLQYms8XmxFSGxD94aKBnM4eCs77TNMMrJ7w-F-VTBwpk7hMyAZxcwn5TJG3_vhKr/exec'; // 請替換為您的 Web App URL
         
         // 載入群組設定和場館列表
         loadInitialData();
@@ -227,48 +218,71 @@
       });
 
     // 載入初始資料
-    async function loadInitialData() {
-      try {
-        // 載入場館列表
-        const arenasResponse = await fetch(`${webAppUrl}?action=arenas`);
-        const arenas = await arenasResponse.json();
-        
-        const locationSelect = document.getElementById('locationCode');
-        locationSelect.innerHTML = '<option value="">請選擇場館</option>';
-        
-        arenas.forEach(arena => {
-          const option = document.createElement('option');
-          option.value = arena.arenaCode;
-          option.textContent = `${arena.arenaCode} - ${arena.name}`;
-          locationSelect.appendChild(option);
-        });
-
-        // 載入群組設定
-        if (groupId) {
-          const settingsResponse = await fetch(`${webAppUrl}?action=settings&groupId=${encodeURIComponent(groupId)}`);
-          const settings = await settingsResponse.json();
+    function loadInitialData() {
+      const locationSelect = document.getElementById('locationCode');
+      
+      // 使用 google.script.run 載入場館列表（從 location.gs 的 locationMap() 取得）
+      google.script.run
+        .withSuccessHandler(function(arenas) {
+          // 檢查是否為有效陣列
+          if (!Array.isArray(arenas) || arenas.length === 0) {
+            locationSelect.innerHTML = '<option value="">場館列表為空</option>';
+            showError('場館列表為空或格式錯誤');
+            return;
+          }
           
-          // 設定預設值
-          if (settings.defaultArenaCode) {
-            locationSelect.value = settings.defaultArenaCode;
-          }
-          if (settings.startHour && settings.endHour) {
-            document.getElementById('startHour').value = settings.startHour;
-            document.getElementById('endHour').value = settings.endHour;
-          }
-          if (settings.minCount) {
-            document.getElementById('minCount').value = settings.minCount;
-          }
-        }
+          // 清空選單並加入預設選項
+          locationSelect.innerHTML = '<option value="">請選擇場館</option>';
+          
+          // 依場館名稱排序（中文排序）
+          arenas.sort((a, b) => {
+            if (!a.name || !b.name) return 0;
+            return a.name.localeCompare(b.name, 'zh-TW');
+          });
+          
+          // 動態加入場館選項
+          arenas.forEach(arena => {
+            // 確保場館資料完整
+            if (arena.arenaCode && arena.name) {
+              const option = document.createElement('option');
+              option.value = arena.arenaCode;
+              option.textContent = arena.name; // 只顯示場館名稱
+              locationSelect.appendChild(option);
+            }
+          });
 
-        // 設定明天的日期為預設值
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        document.getElementById('eventDate').value = tomorrow.toISOString().split('T')[0];
+          // 載入群組設定（如果有 groupId）
+          if (groupId) {
+            google.script.run
+              .withSuccessHandler(function(settings) {
+                // 設定預設值
+                if (settings && settings.defaultArenaCode) {
+                  locationSelect.value = settings.defaultArenaCode;
+                }
+                if (settings && settings.startHour && settings.endHour) {
+                  document.getElementById('startHour').value = settings.startHour;
+                  document.getElementById('endHour').value = settings.endHour;
+                }
+              })
+              .withFailureHandler(function(error) {
+                // 群組設定載入失敗不影響主要功能，只記錄錯誤
+                console.warn('載入群組設定失敗：', error);
+              })
+              .getGroupSettingsForLiff(groupId);
+          }
 
-      } catch (error) {
-        showError('載入資料失敗：' + error.message);
-      }
+          // 設定明天的日期為預設值
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          document.getElementById('eventDate').value = tomorrow.toISOString().split('T')[0];
+        })
+        .withFailureHandler(function(error) {
+          // 載入失敗時顯示錯誤
+          locationSelect.innerHTML = '<option value="">載入失敗，請重新整理</option>';
+          showError('載入場館列表失敗：' + error.message);
+          console.error('載入場館列表錯誤：', error);
+        })
+        .getArenasForLiff();
     }
 
     // 處理表單提交
@@ -290,7 +304,6 @@
         const startHour = formData.get('startHour');
         const endHour = formData.get('endHour');
         const locationCode = formData.get('locationCode');
-        const minCount = formData.get('minCount');
 
         // 計算星期
         const date = new Date(eventDate);
@@ -302,45 +315,40 @@
         const day = String(date.getDate()).padStart(2, '0');
         const formattedDate = `${month}/${day}`;
 
-        // 準備提交資料
-        const postData = {
-          userId: userId,
-          groupId: groupId,
-          eventDate: formattedDate,
-          eventDay: eventDay,
-          startHour: startHour,
-          endHour: endHour,
-          locationCode: locationCode,
-          minCount: minCount
-        };
-
-        // 發送 POST 請求
-        const response = await fetch(webAppUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(postData)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          showSuccess('開團成功！活動代碼：' + result.eventCode);
-          
-          // 3 秒後關閉 LIFF
-          setTimeout(() => {
-            liff.closeWindow();
-          }, 3000);
-        } else {
-          showError(result.message || '開團失敗');
-          submitBtn.disabled = false;
-        }
+        // 使用 google.script.run 提交表單資料
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result && result.success) {
+              showSuccess('開團成功！活動代碼：' + result.eventCode);
+              
+              // 3 秒後關閉 LIFF
+              setTimeout(() => {
+                liff.closeWindow();
+              }, 3000);
+            } else {
+              showError(result.message || '開團失敗');
+              submitBtn.disabled = false;
+            }
+            loading.style.display = 'none';
+          })
+          .withFailureHandler(function(error) {
+            showError('提交失敗：' + error.message);
+            submitBtn.disabled = false;
+            loading.style.display = 'none';
+          })
+          .submitLiffEvent({
+            userId: userId,
+            groupId: groupId,
+            eventDate: formattedDate,
+            eventDay: eventDay,
+            startHour: parseInt(startHour, 10),
+            endHour: parseInt(endHour, 10),
+            locationCode: locationCode
+          });
 
       } catch (error) {
         showError('提交失敗：' + error.message);
         submitBtn.disabled = false;
-      } finally {
         loading.style.display = 'none';
       }
     });

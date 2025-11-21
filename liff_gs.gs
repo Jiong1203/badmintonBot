@@ -50,39 +50,42 @@ function handleLiffCreateEvent(userId, groupId, replyToken) {
 }
 
 /**
- * 處理來自 LIFF 的開團資料提交
- * 這個函數會被 LIFF 網頁透過 POST 請求呼叫
- * @param {object} e - 事件物件（包含 POST 資料）
+ * 處理來自 LIFF 的開團資料提交（供 google.script.run 使用）
+ * @param {object} data - 開團資料物件
+ * @returns {object} 結果物件 {success, message, eventCode, announcement}
  */
-function doPostLiff(e) {
+function submitLiffEvent(data) {
   try {
-    const data = JSON.parse(e.postData.contents);
-    const { userId, groupId, eventDate, eventDay, startHour, endHour, locationCode, minCount } = data;
+    const { userId, groupId, eventDate, eventDay, startHour, endHour, locationCode } = data;
 
     // 驗證必要欄位
     if (!userId || !groupId || !eventDate || !eventDay || !startHour || !endHour || !locationCode) {
-      return ContentService.createTextOutput(JSON.stringify({
+      return {
         success: false,
         message: '缺少必要欄位'
-      })).setMimeType(ContentService.MimeType.JSON);
+      };
     }
 
     // 檢查是否為管理員
     if (!isGroupAdmin(groupId, userId)) {
-      return ContentService.createTextOutput(JSON.stringify({
+      return {
         success: false,
         message: '僅限群組管理員可開團'
-      })).setMimeType(ContentService.MimeType.JSON);
+      };
     }
 
     // 取得場館資訊
     const locationInfo = getLocationByCode(locationCode);
     if (!locationInfo) {
-      return ContentService.createTextOutput(JSON.stringify({
+      return {
         success: false,
         message: '找不到指定的場館'
-      })).setMimeType(ContentService.MimeType.JSON);
+      };
     }
+
+    // 從群組設定取得最低成團人數
+    const groupRow = findRowByValue(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, 0, groupId);
+    const minCount = groupRow && groupRow[4] ? parseInt(groupRow[4], 10) : GROUP_CONFIG.DEFAULT_MIN_COUNT;
 
     // 建立活動物件
     const eventObj = {
@@ -93,14 +96,13 @@ function doPostLiff(e) {
       startHour: parseInt(startHour, 10),
       endHour: parseInt(endHour, 10),
       locationInfo: locationInfo,
-      minCount: parseInt(minCount, 10) || EVENT_CONFIG.DEFAULT_MIN_COUNT
+      minCount: minCount
     };
 
     // 建立活動
     const eventCode = createEvent(eventObj);
 
-    // 取得群組名稱
-    const groupRow = findRowByValue(SHEETS_CONFIG.SHEETS.GROUP_SETTINGS, 0, groupId);
+    // 取得群組名稱（使用上面已經取得的 groupRow）
     const groupName = groupRow ? groupRow[1] : '本群組';
 
     // 發送開團公告到群組
@@ -121,18 +123,38 @@ function doPostLiff(e) {
     }
 
     // 回傳成功訊息
-    return ContentService.createTextOutput(JSON.stringify({
+    return {
       success: true,
       message: '開團成功！',
       eventCode: eventCode,
       announcement: announcementMessage
-    })).setMimeType(ContentService.MimeType.JSON);
+    };
 
   } catch (error) {
     logError('LIFF 開團錯誤: ' + error.message, '', '');
-    return ContentService.createTextOutput(JSON.stringify({
+    return {
       success: false,
       message: '開團失敗：' + error.message
+    };
+  }
+}
+
+/**
+ * 處理來自 LIFF 的開團資料提交（保留供外部 POST 請求使用）
+ * 這個函數會被 LIFF 網頁透過 POST 請求呼叫
+ * @param {object} e - 事件物件（包含 POST 資料）
+ */
+function doPostLiff(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const result = submitLiffEvent(data);
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    logError('LIFF POST 請求錯誤: ' + error.message, '', '');
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: '處理請求失敗：' + error.message
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
