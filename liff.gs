@@ -174,11 +174,22 @@ function getGroupSettingsForLiff(groupId) {
       groupName: GROUP_CONFIG.DEFAULT_GROUP_NAME,
       defaultArenaCode: GROUP_CONFIG.DEFAULT_ARENA_CODE,
       defaultTimeRange: GROUP_CONFIG.DEFAULT_TIME_RANGE,
+      startHour: EVENT_CONFIG.DEFAULT_START_HOUR,
+      endHour: EVENT_CONFIG.DEFAULT_END_HOUR,
       minCount: GROUP_CONFIG.DEFAULT_MIN_COUNT
     };
   }
 
-  const [startHour, endHour] = groupRow[3] ? groupRow[3].split('-').map(x => parseInt(x, 10)) : [20, 22];
+  // 解析時間範圍（格式：20-22）
+  let startHour = EVENT_CONFIG.DEFAULT_START_HOUR;
+  let endHour = EVENT_CONFIG.DEFAULT_END_HOUR;
+  if (groupRow[3] && groupRow[3].includes('-')) {
+    const timeParts = groupRow[3].split('-').map(x => parseInt(x.trim(), 10));
+    if (timeParts.length === 2 && !isNaN(timeParts[0]) && !isNaN(timeParts[1])) {
+      startHour = timeParts[0];
+      endHour = timeParts[1];
+    }
+  }
 
   return {
     groupName: groupRow[1] || GROUP_CONFIG.DEFAULT_GROUP_NAME,

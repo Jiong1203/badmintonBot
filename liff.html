@@ -201,7 +201,7 @@
     let webAppUrl = '';
 
     // 初始化 LIFF
-    liff.init({ liffId: 'YOUR_LIFF_ID_HERE' })
+    liff.init({ liffId: '2008546267-jay6E0A4' })
       .then(() => {
         if (!liff.isLoggedIn()) {
           liff.login();
@@ -217,8 +217,8 @@
         groupId = urlParams.get('groupId') || '';
 
         // 取得 Apps Script Web App URL
-        webAppUrl = 'YOUR_WEB_APP_URL_HERE'; // 請替換為您的 Web App URL
-
+        webAppUrl = 'https://script.google.com/macros/s/AKfycbxJLQYms8XmxFSGxD94aKBnM4eCs77TNMMrJ7w-F-VTBwpk7hMyAZxcwn5TJG3_vhKr/exec'; // 請替換為您的 Web App URL
+        
         // 載入群組設定和場館列表
         loadInitialData();
       })

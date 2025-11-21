@@ -10,8 +10,8 @@ const LINE_CONFIG = {
   REPLY_URL: 'https://api.line.me/v2/bot/message/reply',
   PROFILE_URL: 'https://api.line.me/v2/bot/profile/',
   // LIFF 相關設定（需要在 LINE Developer Console 建立 LIFF App 後填入）
-  LIFF_ID: 'YOUR_LIFF_ID_HERE', // 請替換為您的 LIFF ID
-  LIFF_URL: 'https://liff.line.me/YOUR_LIFF_ID_HERE' // 請替換為您的 LIFF URL
+  LIFF_ID: '2008546267-jay6E0A4', // 請替換為您的 LIFF ID
+  LIFF_URL: 'https://liff.line.me/2008546267-jay6E0A4' // 請替換為您的 LIFF URL
 };
 
 // Google Sheets 相關常數
