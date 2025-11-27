@@ -93,7 +93,7 @@ function registerToEvent(userId, displayName, messageText, groupId) {
   const newNames = Array.from({ length: totalParticipants }, (_, i) => i === 0 ? baseName : `${baseName}${i + 1}`);
   for (const name of newNames) {
     if (eventRegistrations.some(row => row[4] === name && row[3] === userId)) {
-      return ERROR_MESSAGES.ALREADY_REGISTERED(name, eventCode);
+      return MESSAGE_TEMPLATES.ERROR_ALREADY_REGISTERED(name, eventCode);
     }
   }
   let maxOrder = eventRegistrations.length > 0 ? Math.max(...eventRegistrations.map(row => parseInt(row[5] || 0, 10))) : 0;

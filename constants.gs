@@ -95,7 +95,9 @@ const ERROR_MESSAGES = {
   ADMIN_ONLY: '⚠️ 僅限群組管理員可執行此操作',
   INVALID_ARENA: '⚠️ 找不到符合的場館，請重新輸入',
   INVALID_TIME: '⚠️ 時間格式錯誤，請使用如 20-22 的格式',
-  INVALID_NUMBER: '⚠️ 請輸入有效的數字'
+  INVALID_NUMBER: '⚠️ 請輸入有效的數字',
+  INVALID_REGISTRATION_FORMAT: '⚠️ 報名格式錯誤，請使用: !報名 活動代碼 暱稱+人數 備註',
+  INVALID_PARTICIPANT_FORMAT: '⚠️ 參與者格式錯誤，請使用: 暱稱 或 暱稱+人數'
 };
 
 // 成功訊息常數
