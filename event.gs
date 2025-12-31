@@ -327,12 +327,15 @@ function closePastEvents() {
     
     // 解析活動日期，處理跨年問題
     let eventStart;
+    let eventMonth, eventDay;
+    
     if (eventDate instanceof Date) {
-      eventStart = new Date(eventDate);
+      // 如果是 Date 物件，提取月/日
+      eventMonth = eventDate.getMonth();
+      eventDay = eventDate.getDate();
     } else {
-      // 如果是字串格式（如 "01/02"），需要解析並處理跨年
+      // 如果是字串格式（如 "01/02"），需要解析
       const dateStr = String(eventDate);
-      let eventMonth, eventDay;
       
       if (dateStr.includes('/')) {
         // 格式為 "MM/DD" 或 "M/D"
@@ -346,39 +349,44 @@ function closePastEvents() {
         eventMonth = eventStart.getMonth();
         eventDay = eventStart.getDate();
       }
-      
-      // 先假設是今年
-      let eventYear = currentYear;
-      eventStart = new Date(eventYear, eventMonth, eventDay);
-      
-      // 針對 11、12、1 月做跨年判斷
-      // 因為開團是以週為單位，活動日期與今天不會差太多天
-      
-      const isMonthDayBeforeNow = eventMonth < currentMonth || 
-                                   (eventMonth === currentMonth && eventDay < currentDate);
-      
-      if (currentMonth === 11) { // 12 月
-        // 如果活動的月/日在當前月/日之前，則活動應該是明年的
-        // 例如：12/31 看到 01/02 -> 明年
-        if (isMonthDayBeforeNow) {
-          eventYear = currentYear + 1;
-          eventStart = new Date(eventYear, eventMonth, eventDay);
-        }
-      } else if (currentMonth === 0) { // 1 月
-        // 如果活動的月/日在當前月/日之前，且是 12 月，則活動應該是去年的
-        // 例如：01/15 看到 12/30 -> 去年（應該關閉）
-        if (isMonthDayBeforeNow && eventMonth === 11) { // 11 代表 12 月
-          eventYear = currentYear - 1;
-          eventStart = new Date(eventYear, eventMonth, eventDay);
-        }
-      } else if (currentMonth === 10) { // 11 月
-        // 如果活動的月/日在當前月/日之前，且是 1 月或 2 月，則活動應該是明年的
-        // 例如：11/15 看到 01/02 -> 明年（不太可能，因為開團以週為單位）
-        // 但為了完整性，還是處理一下
-        if (isMonthDayBeforeNow && (eventMonth === 0 || eventMonth === 1)) {
-          eventYear = currentYear + 1;
-          eventStart = new Date(eventYear, eventMonth, eventDay);
-        }
+    }
+    
+    // 先假設是今年
+    let eventYear = currentYear;
+    eventStart = new Date(eventYear, eventMonth, eventDay);
+    
+    // 針對 11、12、1 月做跨年判斷
+    // 因為開團是以週為單位，活動日期與今天不會差太多天
+    
+    const isMonthDayBeforeNow = eventMonth < currentMonth || 
+                                 (eventMonth === currentMonth && eventDay < currentDate);
+    
+    if (currentMonth === 11) { // 12 月
+      // 如果活動的月/日在當前月/日之前，需要判斷：
+      // - 如果活動是 12 月，應該是今年的（過去）
+      // - 如果活動是 1-11 月，應該是明年的
+      // 例如：12/31 看到 12/30 -> 今年（應該關閉）
+      // 例如：12/31 看到 01/02 -> 明年（不關閉）
+      if (isMonthDayBeforeNow && eventMonth !== 11) {
+        // 活動是 1-11 月，應該是明年的
+        eventYear = currentYear + 1;
+        eventStart = new Date(eventYear, eventMonth, eventDay);
+      }
+      // 如果活動是 12 月，保持今年的判斷（會正確關閉）
+    } else if (currentMonth === 0) { // 1 月
+      // 如果活動的月/日在當前月/日之前，且是 12 月，則活動應該是去年的
+      // 例如：01/15 看到 12/30 -> 去年（應該關閉）
+      if (isMonthDayBeforeNow && eventMonth === 11) { // 11 代表 12 月
+        eventYear = currentYear - 1;
+        eventStart = new Date(eventYear, eventMonth, eventDay);
+      }
+    } else if (currentMonth === 10) { // 11 月
+      // 如果活動的月/日在當前月/日之前，且是 1 月或 2 月，則活動應該是明年的
+      // 例如：11/15 看到 01/02 -> 明年（不太可能，因為開團以週為單位）
+      // 但為了完整性，還是處理一下
+      if (isMonthDayBeforeNow && (eventMonth === 0 || eventMonth === 1)) {
+        eventYear = currentYear + 1;
+        eventStart = new Date(eventYear, eventMonth, eventDay);
       }
     }
     
