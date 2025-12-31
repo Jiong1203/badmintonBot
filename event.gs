@@ -298,6 +298,10 @@ function reorderRegistrations(eventCode, groupId) {
 function closePastEvents() {
   const allEvents = getSheetData(SHEETS_CONFIG.SHEETS.EVENTS);
   const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDate = now.getDate();
+  
   for (let i = 1; i < allEvents.length; i++) {
     const row = allEvents[i];
     const status = row[9];
@@ -305,10 +309,80 @@ function closePastEvents() {
     const eventDate = row[3];
     const timeRange = row[5];
     if (!eventDate || !timeRange) continue;
-    const [startHour] = timeRange.split(/[-~]/).map(x => parseInt(x, 10));
-    if (isNaN(startHour)) continue;
-    const eventStart = new Date(eventDate);
-    eventStart.setHours(startHour, 0, 0);
+    const [startTime] = timeRange.split(/[-~]/).map(x => parseInt(x, 10));
+    if (isNaN(startTime)) continue;
+    
+    // 解析開始時間：支援 19-21 和 1930-2130 兩種格式
+    let startHour, startMinute;
+    if (startTime >= 1000 && startTime <= 9999) {
+      // 4 位數格式（1930）：前兩位是小時，後兩位是分鐘
+      const timeStr = ('0000' + String(startTime)).slice(-4);
+      startHour = parseInt(timeStr.substring(0, 2), 10);
+      startMinute = parseInt(timeStr.substring(2, 4), 10);
+    } else {
+      // 1-3 位數格式（19）：只有小時，分鐘為 0
+      startHour = startTime;
+      startMinute = 0;
+    }
+    
+    // 解析活動日期，處理跨年問題
+    let eventStart;
+    if (eventDate instanceof Date) {
+      eventStart = new Date(eventDate);
+    } else {
+      // 如果是字串格式（如 "01/02"），需要解析並處理跨年
+      const dateStr = String(eventDate);
+      let eventMonth, eventDay;
+      
+      if (dateStr.includes('/')) {
+        // 格式為 "MM/DD" 或 "M/D"
+        const parts = dateStr.split('/');
+        eventMonth = parseInt(parts[0], 10) - 1; // JavaScript 月份從 0 開始
+        eventDay = parseInt(parts[1], 10);
+      } else {
+        // 嘗試直接解析為 Date
+        eventStart = new Date(eventDate);
+        if (isNaN(eventStart.getTime())) continue;
+        eventMonth = eventStart.getMonth();
+        eventDay = eventStart.getDate();
+      }
+      
+      // 先假設是今年
+      let eventYear = currentYear;
+      eventStart = new Date(eventYear, eventMonth, eventDay);
+      
+      // 針對 11、12、1 月做跨年判斷
+      // 因為開團是以週為單位，活動日期與今天不會差太多天
+      
+      const isMonthDayBeforeNow = eventMonth < currentMonth || 
+                                   (eventMonth === currentMonth && eventDay < currentDate);
+      
+      if (currentMonth === 11) { // 12 月
+        // 如果活動的月/日在當前月/日之前，則活動應該是明年的
+        // 例如：12/31 看到 01/02 -> 明年
+        if (isMonthDayBeforeNow) {
+          eventYear = currentYear + 1;
+          eventStart = new Date(eventYear, eventMonth, eventDay);
+        }
+      } else if (currentMonth === 0) { // 1 月
+        // 如果活動的月/日在當前月/日之前，且是 12 月，則活動應該是去年的
+        // 例如：01/15 看到 12/30 -> 去年（應該關閉）
+        if (isMonthDayBeforeNow && eventMonth === 11) { // 11 代表 12 月
+          eventYear = currentYear - 1;
+          eventStart = new Date(eventYear, eventMonth, eventDay);
+        }
+      } else if (currentMonth === 10) { // 11 月
+        // 如果活動的月/日在當前月/日之前，且是 1 月或 2 月，則活動應該是明年的
+        // 例如：11/15 看到 01/02 -> 明年（不太可能，因為開團以週為單位）
+        // 但為了完整性，還是處理一下
+        if (isMonthDayBeforeNow && (eventMonth === 0 || eventMonth === 1)) {
+          eventYear = currentYear + 1;
+          eventStart = new Date(eventYear, eventMonth, eventDay);
+        }
+      }
+    }
+    
+    eventStart.setHours(startHour, startMinute, 0);
     if (now >= eventStart) {
       setCellValue(SHEETS_CONFIG.SHEETS.EVENTS, i + 1, 10, EVENT_CONFIG.STATUS.CLOSED);
     }
