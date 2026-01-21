@@ -84,6 +84,7 @@ const MESSAGE_TEMPLATES = {
   ERROR_INVALID_FORMAT: '⚠️ 指令格式錯誤，請輸入"!教學" 來查看系統指令',
   ERROR_EVENT_CLOSED: (eventCode) => `⚠️ 活動 ${eventCode} 已截止報名`,
   ERROR_ALREADY_REGISTERED: (name, eventCode) => `⚠️ 您已經以「${name}」的名義報名過活動 ${eventCode}，如需修改請使用「!修改報名」指令`,
+  ERROR_NAME_CONFLICT: (name) => `⚠️ 報名名稱「${name}」已被其他用戶使用，請使用不同的名稱`,
   SUCCESS_REGISTRATION: (name, count, eventCode) => `✅ ${name} 已成功報名 ${count} 人，活動代碼：${eventCode}`
 };
 

@@ -91,9 +91,16 @@ function registerToEvent(userId, displayName, messageText, groupId) {
   const eventRegistrations = getSheetData(SHEETS_CONFIG.SHEETS.REGISTRATIONS)
     .filter(row => row[1] === eventCode && row[2] === groupId);
   const newNames = Array.from({ length: totalParticipants }, (_, i) => i === 0 ? baseName : `${baseName}${i + 1}`);
+  
+  // 檢查報名名稱是否重複（跨用戶檢查）
   for (const name of newNames) {
+    // 檢查同一個用戶是否已使用該名稱
     if (eventRegistrations.some(row => row[4] === name && row[3] === userId)) {
       return MESSAGE_TEMPLATES.ERROR_ALREADY_REGISTERED(name, eventCode);
+    }
+    // 檢查其他用戶是否已使用該名稱（避免名稱衝突）
+    if (eventRegistrations.some(row => row[4] === name && row[3] !== userId)) {
+      return MESSAGE_TEMPLATES.ERROR_NAME_CONFLICT(name);
     }
   }
   let maxOrder = eventRegistrations.length > 0 ? Math.max(...eventRegistrations.map(row => parseInt(row[5] || 0, 10))) : 0;
@@ -175,11 +182,35 @@ function updateRegistration(userId, messageText, groupId) {
   const numberOfPeople = countStr ? parseInt(countStr, 10) : 1;
   const regSheet = onConn("registrations");
   let data = regSheet.getDataRange().getValues();
-  // 找出該userId+eventCode下所有baseName開頭的資料，依orderNumber排序
-  let userRegs = data
+  
+  // 檢查是否為管理員
+  const isAdmin = isGroupAdmin(groupId, userId);
+  
+  // 找出該eventCode下所有baseName開頭的資料
+  let allRegsWithName = data
     .map((row, idx) => ({ row, idx }))
-    .filter(obj => obj.row[1] === eventCode && obj.row[2] === groupId && obj.row[3] === userId && obj.row[4].startsWith(baseName))
+    .filter(obj => obj.row[1] === eventCode && obj.row[2] === groupId && obj.row[4].startsWith(baseName))
     .sort((a, b) => parseInt(a.row[5], 10) - parseInt(b.row[5], 10));
+  
+  // 如果不是管理員，只能修改自己的報名
+  let userRegs;
+  let targetUserId;
+  if (!isAdmin) {
+    userRegs = allRegsWithName.filter(obj => obj.row[3] === userId);
+    if (userRegs.length === 0) {
+      return `⚠️ 您尚未以「${baseName}」的名義報名活動 ${eventCode}，無法修改`;
+    }
+    targetUserId = userId;
+  } else {
+    // 如果是管理員，可以修改任何用戶的報名
+    // 如果有多個用戶使用相同的報名名稱，優先修改第一個找到的
+    if (allRegsWithName.length === 0) {
+      return `⚠️ 找不到活動 ${eventCode} 中以「${baseName}」報名的資料`;
+    }
+    // 找出第一個使用該名稱的用戶ID
+    targetUserId = allRegsWithName[0].row[3];
+    userRegs = allRegsWithName.filter(obj => obj.row[3] === targetUserId);
+  }
   const now = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss');
   // 取得目前該活動最大orderNumber
   const eventRegs = data.filter(row => row[1] === eventCode && row[2] === groupId);
@@ -196,31 +227,81 @@ function updateRegistration(userId, messageText, groupId) {
     data = regSheet.getDataRange().getValues();
     userRegs = data
       .map((row, idx) => ({ row, idx }))
-      .filter(obj => obj.row[1] === eventCode && obj.row[2] === groupId && obj.row[3] === userId && obj.row[4].startsWith(baseName))
+      .filter(obj => obj.row[1] === eventCode && obj.row[2] === groupId && obj.row[3] === targetUserId && obj.row[4].startsWith(baseName))
       .sort((a, b) => parseInt(a.row[5], 10) - parseInt(b.row[5], 10));
     for (let i = 0; i < numberOfPeople; i++) {
       regSheet.getRange(userRegs[i].idx + 1, 7).setValue(remark || '');
       regSheet.getRange(userRegs[i].idx + 1, 8).setValue(now);
     }
   } else if (numberOfPeople > userRegs.length) {
-    // 2. 若新數量 > 原數量：保留原有，新增 displayName（如小明3、小明4...），orderNumber 接在最大 orderNumber 後面
+    // 2. 若新數量 > 原數量：保留原有，新增報名名稱，避免與其他用戶衝突
     for (let i = 0; i < userRegs.length; i++) {
       regSheet.getRange(userRegs[i].idx + 1, 7).setValue(remark || '');
       regSheet.getRange(userRegs[i].idx + 1, 8).setValue(now);
     }
-    for (let i = userRegs.length; i < numberOfPeople; i++) {
-      const thisName = i === 0 ? baseName : baseName + (i + 1);
+    
+    // 找出目標用戶現有的報名名稱（用於避免重複）
+    const existingNames = userRegs.map(reg => reg.row[4]);
+    // 找出所有其他用戶已使用的報名名稱（用於避免衝突）
+    const otherUserNames = eventRegs
+      .filter(row => row[3] !== targetUserId)
+      .map(row => row[4]);
+    
+    // 找出目標用戶現有報名名稱的最大數字後綴
+    // 例如：如果現有「小明」、「小明2」、「小明3」，最大後綴是 3
+    let maxSuffix = 0;
+    for (const name of existingNames) {
+      if (name === baseName) {
+        maxSuffix = Math.max(maxSuffix, 1);
+      } else if (name.startsWith(baseName)) {
+        const suffixStr = name.substring(baseName.length);
+        const suffixNum = parseInt(suffixStr, 10);
+        if (!isNaN(suffixNum)) {
+          maxSuffix = Math.max(maxSuffix, suffixNum);
+        }
+      }
+    }
+    
+    // 為新增的報名生成唯一的名稱，按照順序排列
+    const needToAdd = numberOfPeople - userRegs.length;
+    for (let i = 0; i < needToAdd; i++) {
+      let newName;
+      // 從最大後綴 + 1 開始嘗試（例如：最大後綴是3，下一個應該是4）
+      let suffix = maxSuffix + 1;
+      
+      // 生成新名稱，確保不與目標用戶現有的報名重複，也不與其他用戶衝突
+      // 優先使用 baseName + 數字 的格式（如 小明4, 小明5...）
+      do {
+        newName = suffix === 1 ? baseName : `${baseName}${suffix}`;
+        suffix++;
+        // 如果 suffix 超過 1000，改用時間戳避免無限循環
+        if (suffix > 1000) {
+          newName = `${baseName}_${new Date().getTime()}_${i}`;
+          break;
+        }
+      } while (existingNames.includes(newName) || otherUserNames.includes(newName));
+      
       const registerId = 'R' + new Date().getTime() + i;
       regSheet.appendRow([
         registerId,
         eventCode,
         groupId,
-        userId,
-        thisName,
+        targetUserId,
+        newName,
         ++maxOrder,
         remark || '',
         now
       ]);
+      // 將新名稱加入現有名稱列表，避免後續新增時重複
+      existingNames.push(newName);
+      // 更新最大後綴，確保後續新增時按照順序
+      const newSuffixStr = newName.substring(baseName.length);
+      const newSuffixNum = parseInt(newSuffixStr, 10);
+      if (!isNaN(newSuffixNum)) {
+        maxSuffix = Math.max(maxSuffix, newSuffixNum);
+      } else if (newName === baseName) {
+        maxSuffix = Math.max(maxSuffix, 1);
+      }
     }
   } else {
     // 3. 數量相同，只更新remark
@@ -258,13 +339,32 @@ function cancelRegistration(userId, userMessage, groupId) {
   const cancelCount = match[3] ? parseInt(match[3], 10) : 1;
   const regSheet = onConn("registrations");
   let data = regSheet.getDataRange().getValues();
-  // 找出該userId+eventCode下所有baseName開頭的資料，依orderNumber排序
-  let userRegs = data
+  
+  // 檢查是否為管理員
+  const isAdmin = isGroupAdmin(groupId, userId);
+  
+  // 找出該eventCode下所有baseName開頭的資料
+  let allRegsWithName = data
     .map((row, idx) => ({ row, idx }))
-    .filter(obj => obj.row[1] === eventCode && obj.row[2] === groupId && obj.row[3] === userId && obj.row[4].startsWith(baseName))
+    .filter(obj => obj.row[1] === eventCode && obj.row[2] === groupId && obj.row[4].startsWith(baseName))
     .sort((a, b) => parseInt(a.row[5], 10) - parseInt(b.row[5], 10));
-  if (userRegs.length === 0) {
-    return `⚠️ 您尚未以「${baseName}」的名義報名活動 ${eventCode}，無法取消`;
+  
+  // 如果不是管理員，只能取消自己的報名
+  let userRegs;
+  if (!isAdmin) {
+    userRegs = allRegsWithName.filter(obj => obj.row[3] === userId);
+    if (userRegs.length === 0) {
+      return `⚠️ 您尚未以「${baseName}」的名義報名活動 ${eventCode}，無法取消`;
+    }
+  } else {
+    // 如果是管理員，可以取消任何用戶的報名
+    // 如果有多個用戶使用相同的報名名稱，優先取消第一個找到的
+    if (allRegsWithName.length === 0) {
+      return `⚠️ 找不到活動 ${eventCode} 中以「${baseName}」報名的資料`;
+    }
+    // 找出第一個使用該名稱的用戶ID
+    const targetUserId = allRegsWithName[0].row[3];
+    userRegs = allRegsWithName.filter(obj => obj.row[3] === targetUserId);
   }
   // 實際要刪除的數量
   const toDeleteCount = Math.min(cancelCount, userRegs.length);
