@@ -78,6 +78,20 @@ function handleCommand(userCommand, groupId = null) {
     };
   }
 
+  // 報名相關指令（不帶參數時，給出對應的格式提示）
+  if (normalizedCommand.startsWith('!報名')) {
+    return { error: '⚠️ 報名格式錯誤，請使用：\n!報名 活動代碼 暱稱+人數 備註\n或 !報名 日期 時間 暱稱+人數 備註\n\n範例：\n!報名 F01 小明+2 會晚到\n!報名 7/14 20-22 小明+2' };
+  }
+  if (normalizedCommand.startsWith('!修改報名')) {
+    return { error: '⚠️ 修改報名格式錯誤，請使用：\n!修改報名 活動代碼 暱稱+人數 備註\n\n範例：!修改報名 F01 小明+3 改帶朋友' };
+  }
+  if (normalizedCommand.startsWith('!取消報名')) {
+    return { error: '⚠️ 取消報名格式錯誤，請使用：\n!取消報名 活動代碼 暱稱\n或 !取消報名 活動代碼 暱稱-數量\n\n範例：!取消報名 F01 小明-2' };
+  }
+  if (normalizedCommand.startsWith('!查詢報名')) {
+    return { error: '⚠️ 查詢報名格式錯誤，請使用：\n!查詢報名 活動代碼\n\n範例：!查詢報名 F01' };
+  }
+
   // 處理：!週五20-22開團 地點 或 !週二1930-2130開團 地點
   const openEventMatch = normalizedCommand.match(/^!(下下週|下週|週)([日一二三四五六])(?:(\d{1,4})[-~](\d{1,4}))?開團(?:\s+(.+))?$/);
   if (!openEventMatch) {
