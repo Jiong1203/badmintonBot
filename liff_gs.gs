@@ -12,6 +12,7 @@
 function handleLiffCreateEvent(userId, groupId, replyToken) {
   // 檢查是否為管理員
   if (!isGroupAdmin(groupId, userId)) {
+    logError('開團失敗：非管理員嘗試開團', userId, '');
     sendReply(replyToken, '⚠️ 僅限群組管理員可開團');
     return;
   }
@@ -60,6 +61,7 @@ function submitLiffEvent(data) {
 
     // 驗證必要欄位
     if (!userId || !groupId || !eventDate || !eventDay || !startHour || !endHour || !locationCode) {
+      logError('LIFF 開團失敗：缺少必要欄位', userId || '', '');
       return {
         success: false,
         message: '缺少必要欄位'
@@ -68,6 +70,7 @@ function submitLiffEvent(data) {
 
     // 檢查是否為管理員
     if (!isGroupAdmin(groupId, userId)) {
+      logError('LIFF 開團失敗：非管理員嘗試開團', userId, '');
       return {
         success: false,
         message: '僅限群組管理員可開團'
@@ -77,6 +80,7 @@ function submitLiffEvent(data) {
     // 取得場館資訊
     const locationInfo = getLocationByCode(locationCode);
     if (!locationInfo) {
+      logError(`LIFF 開團失敗：找不到場館代碼 ${locationCode}`, userId, '');
       return {
         success: false,
         message: '找不到指定的場館'

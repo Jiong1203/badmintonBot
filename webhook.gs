@@ -63,29 +63,36 @@ function processUserMessage(userMessage, userId, displayName, groupId) {
   if (!userMessage.startsWith(COMMAND_CONFIG.PREFIX)) {
     return '';
   }
+
   // 先處理精準指令（如教學）
   const commandResult = handleCommand(userMessage, groupId);
+  let replyText = '';
+
   if (commandResult.tutorial) {
-    return commandResult.tutorial;
-  }
-  if (commandResult.error) {
-    return commandResult.error;
-  }
-  if (userMessage.startsWith('!報名')) {
+    replyText = commandResult.tutorial;
+  } else if (commandResult.error) {
+    replyText = commandResult.error;
+  } else if (userMessage.startsWith('!報名')) {
     if (typeof parseNewRegistrationCommand === 'function' && parseNewRegistrationCommand(userMessage)) {
-      return registerToEventByDateTime(userId, displayName, groupId, userMessage);
+      replyText = registerToEventByDateTime(userId, displayName, groupId, userMessage);
     } else {
-      return registerToEvent(userId, displayName, userMessage, groupId);
+      replyText = registerToEvent(userId, displayName, userMessage, groupId);
     }
+  } else if (commandResult.groupSetting) {
+    replyText = adminCommandHandler(groupId, userId, displayName, commandResult);
+  } else if (commandResult.event) {
+    replyText = handleEventCommand(commandResult.event, userId, displayName, groupId, userMessage);
+  } else {
+    // 處理開團指令
+    replyText = handleCreateEventCommand(commandResult, userId, groupId);
   }
-  if (commandResult.groupSetting) {
-    return adminCommandHandler(groupId, userId, displayName, commandResult);
+
+  // 集中記錄錯誤日誌：當回覆包含錯誤/警告標記時寫入 log
+  if (replyText && (replyText.includes('⚠️') || replyText.includes('❌'))) {
+    logError(`指令執行失敗 [${userMessage}]: ${replyText}`, userId, displayName);
   }
-  if (commandResult.event) {
-    return handleEventCommand(commandResult.event, userId, displayName, groupId, userMessage);
-  }
-  // 處理開團指令
-  return handleCreateEventCommand(commandResult, userId, groupId);
+
+  return replyText;
 }
 
 /**
